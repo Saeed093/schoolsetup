@@ -1,0 +1,392 @@
+/* Principal class page – blue background like rest of app; allow scroll on low resolution */
+.principal-class-page {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%) !important;
+  background-size: cover;
+  background-position: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
+/* Smaller header: Class 1 — Pickups */
+.principal-class-page .class-view-header h1 {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  margin-bottom: 4px;
+}
+
+.principal-class-page .class-view-header .principal-subtitle {
+  font-size: 0.9rem;
+  margin-top: 4px;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.principal-class-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(12px, 3vw, 24px);
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.principal-loading,
+.principal-error,
+.principal-empty {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 500;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.principal-error {
+  color: #ffcdd2;
+}
+
+.principal-empty {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 32px 40px;
+}
+
+.principal-pickup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 720px;
+}
+
+/* Smaller pickup boxes */
+.principal-pickup-box {
+  min-height: auto !important;
+  padding: clamp(12px, 2.5vw, 18px) clamp(16px, 3vw, 24px) !important;
+  gap: clamp(10px, 2vw, 16px) !important;
+  border-radius: clamp(12px, 2.5vw, 18px) !important;
+}
+
+.principal-pickup-box::before {
+  content: none !important;
+}
+
+.principal-pickup-box .class-view-role-label {
+  font-size: 0.7rem;
+  margin-bottom: 2px;
+}
+
+.principal-pickup-box .class-view-avatar {
+  width: clamp(100px, 22vw, 150px) !important;
+  height: clamp(100px, 22vw, 150px) !important;
+}
+
+.principal-pickup-box .class-view-avatar:has(img) {
+  cursor: pointer;
+}
+
+.principal-pickup-box .class-view-side-name {
+  font-size: clamp(0.8rem, 2vw, 0.95rem);
+}
+
+.principal-pickup-box .class-view-name {
+  font-size: clamp(1rem, 3vw, 1.25rem) !important;
+}
+
+.principal-pickup-box .class-view-time {
+  font-size: clamp(0.85rem, 2vw, 1rem) !important;
+  padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px) !important;
+}
+
+/* Image popup modal */
+.principal-image-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  cursor: pointer;
+}
+
+.principal-image-popup-content {
+  position: relative;
+  cursor: default;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.principal-image-popup-content img {
+  max-width: 85vw;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.principal-image-popup-close-btn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.principal-image-popup-close-btn:hover {
+  background: #f5f5f5;
+  transform: scale(1.05);
+}
+
+.principal-image-popup-label {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.principal-image-popup-hint {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+/* Clickable pickup box */
+.principal-pickup-clickable {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.principal-pickup-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.class-view-tap-hint {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* Detail Modal Overlay */
+.principal-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  cursor: pointer;
+  overflow-y: auto;
+}
+
+.principal-detail-content {
+  position: relative;
+  cursor: default;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.principal-detail-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.principal-detail-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.principal-detail-title {
+  color: white;
+  font-size: 1.5rem;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.principal-detail-info {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+}
+
+.principal-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.principal-detail-row:last-child {
+  border-bottom: none;
+}
+
+.principal-detail-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.principal-detail-value {
+  color: white;
+  font-weight: 600;
+}
+
+.principal-detail-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+}
+
+.principal-detail-image-box {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  flex: 1;
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.principal-detail-pickup-image {
+  flex: 1 1 100%;
+  max-width: 100%;
+}
+
+.principal-detail-pickup-image img {
+  max-width: 100%;
+  max-height: none !important;
+  width: auto;
+  height: auto;
+  object-fit: contain !important;
+}
+
+.principal-detail-image-label {
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.principal-detail-image-box img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Override for pickup image - show full size without cropping */
+.principal-detail-pickup-image.principal-detail-image-box img {
+  max-height: none;
+  object-fit: contain;
+}
+
+.principal-detail-image-placeholder {
+  padding: 30px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+}
+
+.principal-detail-no-images {
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  padding: 30px;
+  width: 100%;
+}
+
+.principal-detail-footer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.principal-detail-done-btn {
+  padding: 12px 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.principal-detail-done-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Low resolution: ensure main area scrolls and content is visible */
+@media (max-height: 700px) {
+  .principal-class-page .class-view-header {
+    margin-bottom: clamp(12px, 2vh, 24px);
+  }
+  
+  .principal-class-page .class-view-header h1 {
+    font-size: clamp(1.2rem, 4vw, 1.5rem);
+  }
+  
+  .principal-class-main {
+    padding-top: 8px;
+    padding-bottom: 16px;
+  }
+  
+  .principal-pickup-list {
+    gap: 10px;
+  }
+  
+  .principal-pickup-box .class-view-avatar {
+    width: clamp(80px, 18vw, 120px) !important;
+    height: clamp(80px, 18vw, 120px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .principal-class-main {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
+  .principal-pickup-box {
+    padding: 10px 12px !important;
+  }
+}

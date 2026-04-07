@@ -1,0 +1,9 @@
+node_modules/
+client/node_modules/
+client/build/
+.env
+*.db
+*.log
+.DS_Store
+server/uploads/
+certs/*.pem

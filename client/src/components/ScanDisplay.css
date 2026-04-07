@@ -1,0 +1,204 @@
+.scan-display {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.scan-result {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 15px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 30px;
+  border: 3px solid #e0e0e0;
+  transition: all 0.3s;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.scan-result.found {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  border-color: #4caf50;
+}
+
+.scan-result.not-found {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  border-color: #ff9800;
+}
+
+.scan-result.pulse {
+  animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.scan-name-line {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 18px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.scan-name-text {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #000000 !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.scan-class-text {
+  color: #000000 !important;
+}
+
+.scan-card-id {
+  font-size: 1.2rem;
+  color: #333333 !important;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.scan-time {
+  font-size: 0.9rem;
+  color: #444444 !important;
+  margin-top: 10px;
+}
+
+.scan-warning {
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(255, 152, 0, 0.2);
+  border-radius: 8px;
+  color: #c62828 !important;
+  font-weight: 600;
+}
+
+.scan-placeholder {
+  color: #555555 !important;
+}
+
+.scan-icon {
+  font-size: 4rem;
+  margin-bottom: 15px;
+  opacity: 0.7;
+}
+
+.scan-message {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  color: #333333 !important;
+}
+
+.scan-hint {
+  font-size: 0.9rem;
+  color: #555555 !important;
+  font-style: italic;
+}
+
+.scan-history {
+  margin-top: 30px;
+}
+
+.scan-history h3 {
+  color: #ffffff !important;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #ddd;
+  transition: all 0.3s;
+}
+
+.history-item.found {
+  border-left-color: #4caf50;
+}
+
+.history-item.not-found {
+  border-left-color: #ff9800;
+}
+
+.history-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.history-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #000000 !important;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.history-class {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #000000 !important;
+  opacity: 0.9;
+}
+
+.history-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #333333 !important;
+}
+
+.history-id {
+  font-family: 'Courier New', monospace;
+  color: #333333 !important;
+}
+
+.history-time {
+  color: #555555 !important;
+}
+
+/* Scrollbar styling */
+.history-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.history-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

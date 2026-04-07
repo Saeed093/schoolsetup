@@ -1,0 +1,153 @@
+.home-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+}
+
+.logo-header {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  z-index: 10;
+}
+
+.logo-header-left {
+  position: absolute;
+  top: 20px;
+  left: 30px;
+  right: auto;
+  z-index: 10;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.logo-header .page-logo,
+.logo-header-left .page-logo {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.home-header {
+  text-align: center;
+  color: white;
+  margin-bottom: 60px;
+}
+
+.home-header h1 {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.subtitle {
+  font-size: 1.3rem;
+  opacity: 0.9;
+}
+
+.home-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  max-width: 800px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.option-card {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.option-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+}
+
+.class-card-home:hover {
+  border: 3px solid #9c27b0;
+}
+
+.principles-card-home:hover {
+  border: 3px solid #1e3c72;
+}
+
+.scan-card:hover {
+  border: 3px solid #4caf50;
+}
+
+.manage-card:hover {
+  border: 3px solid #667eea;
+}
+
+.time-card:hover {
+  border: 3px solid #ff9800;
+}
+
+.capture-card-home:hover {
+  border: 3px solid #e91e63;
+}
+
+.admin-card-home:hover {
+  border: 3px solid #2e7d32;
+}
+
+.card-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.option-card h2 {
+  color: #333;
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+}
+
+.option-card p {
+  color: #666;
+  font-size: 1rem;
+  margin: 5px 0;
+}
+
+.card-hint {
+  margin-top: 15px;
+  font-size: 0.9rem;
+  color: #999;
+  font-style: italic;
+}
+
+.home-info {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  padding: 20px 30px;
+  border-radius: 15px;
+  color: white;
+  text-align: center;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .home-header h1 {
+    font-size: 2rem;
+  }
+  
+  .home-options {
+    grid-template-columns: 1fr;
+  }
+}

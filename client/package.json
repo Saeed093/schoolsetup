@@ -1,0 +1,38 @@
+{
+  "name": "school-pickup-client",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://localhost:5000",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.30.3",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "set HOST=0.0.0.0&& set DANGEROUSLY_DISABLE_HOST_CHECK=true&& react-scripts start",
+    "start:https": "set HTTPS=true&& set SSL_CRT_FILE=..\\\\certs\\\\dev-cert.pem&& set SSL_KEY_FILE=..\\\\certs\\\\dev-key.pem&& set HOST=0.0.0.0&& set DANGEROUSLY_DISABLE_HOST_CHECK=true&& react-scripts start",
+    "start:https:linux": "HTTPS=true SSL_CRT_FILE=../certs/dev-cert.pem SSL_KEY_FILE=../certs/dev-key.pem HOST=0.0.0.0 DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

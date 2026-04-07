@@ -1,0 +1,596 @@
+/* School-themed Class View */
+.class-view-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(16px, 4vw, 32px);
+  position: relative;
+  box-sizing: border-box;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+/* Optional overlay for readability */
+.class-view-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+/* Logo header */
+.class-view-logo-header {
+  position: absolute;
+  top: clamp(16px, 3vw, 24px);
+  right: clamp(20px, 4vw, 40px);
+  z-index: 10;
+}
+
+.class-view-logo-left {
+  right: auto;
+  left: clamp(20px, 4vw, 40px);
+  padding: clamp(6px, 1.5vw, 10px) clamp(10px, 2vw, 14px);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: clamp(10px, 2vw, 14px);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.2);
+}
+
+.class-view-logo-header .page-logo {
+  height: clamp(50px, 12vw, 70px);
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Header */
+.class-view-header {
+  flex-shrink: 0;
+  margin-bottom: clamp(20px, 4vw, 40px);
+  color: white;
+  text-align: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.class-view-header h1 {
+  font-size: clamp(2.5rem, 12vw, 4rem);
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.8),
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    0 6px 24px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+.class-view-header .ws-status {
+  font-size: 0.9rem;
+  margin-top: 14px;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Main content area */
+.class-view-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 3vw, 24px);
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Scan card box – large for children visibility */
+.class-view-scan-box {
+  width: 100%;
+  max-width: min(1100px, 96vw);
+  min-height: clamp(380px, 45vh, 520px);
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: clamp(24px, 5vw, 40px);
+  box-shadow: 
+    0 24px 72px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255,255,255,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: clamp(32px, 6vw, 56px) clamp(28px, 5vw, 48px);
+  gap: clamp(28px, 5vw, 56px);
+  position: relative;
+  box-sizing: border-box;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Top banner on scan box */
+.class-view-scan-box::before {
+  content: '🎒 Student Pickup';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  padding: clamp(10px, 2vw, 14px) clamp(24px, 5vw, 36px);
+  border-radius: clamp(20px, 4vw, 28px);
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(76, 175, 80, 0.45);
+  letter-spacing: 0.02em;
+}
+
+/* Side sections (Guardian & Student) */
+.class-view-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 2.5vw, 20px);
+  flex-shrink: 0;
+}
+
+.class-view-adult-side {
+  order: 1;
+}
+
+.class-view-child-side {
+  order: 3;
+}
+
+/* Avatar boxes (square with rounded corners) – large for visibility */
+.class-view-avatar {
+  flex-shrink: 0;
+  width: clamp(140px, 28vw, 220px);
+  height: clamp(140px, 28vw, 220px);
+  border-radius: clamp(16px, 3vw, 24px);
+  overflow: hidden;
+  background: linear-gradient(145deg, #e8f4f8 0%, #d0e8f0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 
+    0 10px 32px rgba(0, 0, 0, 0.18),
+    inset 0 -2px 10px rgba(0, 0, 0, 0.05);
+  border: clamp(4px, 1vw, 6px) solid white;
+  animation: popIn 0.4s ease-out backwards;
+}
+
+.class-view-adult-side .class-view-avatar {
+  animation-delay: 0.1s;
+  border-color: #81C784;
+}
+
+.class-view-child-side .class-view-avatar {
+  animation-delay: 0.2s;
+  border-color: #64B5F6;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.class-view-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+}
+
+.class-view-avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  color: #90a4ae;
+}
+
+.class-view-avatar-placeholder::after {
+  content: attr(data-label);
+  font-size: clamp(0.75rem, 2vw, 1rem);
+  font-weight: 600;
+  margin-top: 4px;
+  color: #78909c;
+}
+
+/* Role labels under avatars */
+.class-view-role-label {
+  font-size: clamp(0.8rem, 2vw, 1.1rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #78909c;
+  margin-bottom: 4px;
+}
+
+.class-view-adult-side .class-view-role-label {
+  color: #4CAF50;
+}
+
+.class-view-child-side .class-view-role-label {
+  color: #2196F3;
+}
+
+/* Names under avatars */
+.class-view-side-name {
+  font-size: clamp(1.1rem, 3.5vw, 1.6rem);
+  font-weight: 700;
+  color: #37474f;
+  text-align: center;
+  max-width: clamp(140px, 22vw, 220px);
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+/* Center section */
+.class-view-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 28px);
+  order: 2;
+  min-width: 0;
+  padding: 0 clamp(16px, 3vw, 28px);
+  animation: fadeIn 0.5s ease-out 0.3s backwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.class-view-name {
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-weight: 800;
+  color: #1a237e;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.class-view-time {
+  font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+  color: #5c6bc0;
+  font-weight: 600;
+  background: linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%);
+  padding: clamp(10px, 2vw, 14px) clamp(24px, 4vw, 32px);
+  border-radius: clamp(20px, 4vw, 28px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  white-space: nowrap;
+  display: inline-block;
+}
+
+/* Waiting state */
+.class-view-waiting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 20px;
+}
+
+.class-view-waiting-icon {
+  font-size: clamp(4rem, 12vw, 6rem);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+.class-view-waiting-text {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  color: #78909c;
+  font-weight: 600;
+  text-align: center;
+}
+
+.class-view-waiting-hint {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  color: #b0bec5;
+}
+
+/* Connection warning */
+.class-view-ws-warning {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  border-radius: 12px;
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  font-weight: 600;
+  z-index: 25;
+  box-shadow: 0 4px 20px rgba(255, 152, 0, 0.4);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Navigation buttons */
+.class-view-nav-bottom {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  z-index: 20;
+}
+
+.class-view-nav-bottom .nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.class-view-nav-bottom .nav-link:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Responsive – keep horizontal layout; reduce images and text as screen shrinks */
+@media (max-width: 900px) {
+  .class-view-scan-box {
+    min-height: clamp(280px, 38vh, 400px);
+    padding: clamp(28px, 5vw, 44px) clamp(20px, 4vw, 32px);
+    gap: clamp(16px, 3vw, 28px);
+  }
+
+  .class-view-scan-box::before {
+    padding: clamp(6px, 1.5vw, 10px) clamp(16px, 3vw, 24px);
+    font-size: clamp(0.95rem, 2.8vw, 1.2rem);
+  }
+
+  .class-view-side {
+    gap: clamp(8px, 1.5vw, 14px);
+  }
+
+  .class-view-avatar {
+    width: clamp(100px, 20vw, 160px);
+    height: clamp(100px, 20vw, 160px);
+  }
+
+  .class-view-role-label {
+    font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+  }
+
+  .class-view-side-name {
+    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+    max-width: clamp(100px, 18vw, 160px);
+  }
+
+  .class-view-center {
+    gap: clamp(10px, 2vw, 18px);
+    padding: 0 clamp(12px, 2vw, 20px);
+  }
+
+  .class-view-name {
+    font-size: clamp(1.35rem, 4.5vw, 2rem);
+  }
+
+  .class-view-time {
+    font-size: clamp(0.95rem, 2.8vw, 1.25rem);
+    padding: clamp(6px, 1.5vw, 10px) clamp(16px, 3vw, 24px);
+  }
+}
+
+@media (max-width: 600px) {
+  .class-view-scan-box {
+    min-height: clamp(220px, 35vh, 320px);
+    padding: clamp(20px, 4vw, 32px) clamp(14px, 3vw, 24px);
+    gap: clamp(12px, 2.5vw, 20px);
+  }
+
+  .class-view-scan-box::before {
+    padding: 5px clamp(12px, 2.5vw, 18px);
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
+  }
+
+  .class-view-avatar {
+    width: clamp(72px, 18vw, 120px);
+    height: clamp(72px, 18vw, 120px);
+  }
+
+  .class-view-role-label {
+    font-size: clamp(0.6rem, 1.6vw, 0.8rem);
+  }
+
+  .class-view-side-name {
+    font-size: clamp(0.75rem, 2.2vw, 1rem);
+    max-width: clamp(80px, 16vw, 120px);
+  }
+
+  .class-view-name {
+    font-size: clamp(1.1rem, 4vw, 1.5rem);
+  }
+
+  .class-view-time {
+    font-size: clamp(0.8rem, 2.5vw, 1.05rem);
+    padding: 5px clamp(12px, 2.5vw, 18px);
+  }
+
+  .class-view-nav-bottom {
+    bottom: 12px;
+    right: 12px;
+    gap: 6px;
+  }
+
+  .class-view-nav-bottom .nav-link {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .class-view-scan-box {
+    min-height: clamp(180px, 32vh, 260px);
+    padding: clamp(14px, 3vw, 24px) clamp(10px, 2.5vw, 18px);
+    gap: clamp(8px, 2vw, 14px);
+  }
+
+  .class-view-scan-box::before {
+    padding: 4px clamp(10px, 2vw, 14px);
+    font-size: clamp(0.7rem, 2.2vw, 0.9rem);
+  }
+
+  .class-view-avatar {
+    width: clamp(56px, 16vw, 88px);
+    height: clamp(56px, 16vw, 88px);
+  }
+
+  .class-view-role-label {
+    font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+  }
+
+  .class-view-side-name {
+    font-size: clamp(0.65rem, 2vw, 0.85rem);
+    max-width: clamp(64px, 14vw, 96px);
+  }
+
+  .class-view-name {
+    font-size: clamp(0.95rem, 3.5vw, 1.25rem);
+  }
+
+  .class-view-time {
+    font-size: clamp(0.7rem, 2.2vw, 0.9rem);
+    padding: 4px clamp(10px, 2vw, 14px);
+  }
+
+  .class-view-header h1 {
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+
+  .class-view-nav-bottom {
+    flex-direction: column;
+    align-items: flex-end;
+    bottom: 10px;
+    right: 10px;
+  }
+}
+
+/* Live Camera Container */
+.class-view-camera-container {
+  position: fixed;
+  top: 120px;
+  right: 20px;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.class-view-camera-header {
+  font-size: 0.9rem;
+  color: white;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.class-view-camera-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #f44336;
+  border-radius: 50%;
+  animation: cameraPulse 1s ease-in-out infinite;
+}
+
+@keyframes cameraPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+
+.class-view-camera-video {
+  width: 320px;
+  height: 240px;
+  border-radius: 10px;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror for natural view */
+  background: #1a1a1a;
+}
+
+@media (max-width: 900px) {
+  .class-view-camera-container {
+    top: auto;
+    bottom: 80px;
+    right: 10px;
+  }
+  
+  .class-view-camera-video {
+    width: 200px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 600px) {
+  .class-view-camera-container {
+    display: none; /* Hide on very small screens */
+  }
+}

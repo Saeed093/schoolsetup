@@ -1,0 +1,31 @@
+{
+  "name": "school-pickup-rfid-system",
+  "version": "1.0.0",
+  "description": "RFID card management system for school pickup",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev:https": "concurrently \"npm run server\" \"npm run client:https\"",
+    "server": "nodemon server/index.js",
+    "client": "cd client && npm start",
+    "client:https": "cd client && npm run start:https",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd client && npm install",
+    "install-all:ps": "npm install; if ($?) { cd client; npm install }"
+  },
+  "keywords": ["rfid", "school", "pickup"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "sqlite3": "^5.1.6",
+    "serialport": "^12.0.0",
+    "ws": "^8.14.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.2"
+  }
+}

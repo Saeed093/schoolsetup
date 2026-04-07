@@ -1,0 +1,732 @@
+.principles-view-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  padding-top: 100px;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+  background-color: #1e3c72;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Background overlay for better text readability */
+.principles-view-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 60, 60, 0.4) 0%, rgba(0, 80, 80, 0.3) 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Ensure all content is above the overlay */
+.principles-view-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.principles-view-page .principles-logo-header {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  z-index: 10;
+}
+
+.principles-view-page .principles-logo-left {
+  position: absolute;
+  top: 20px;
+  left: 30px;
+  right: auto;
+  z-index: 10;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.principles-view-page .page-logo {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.principles-header {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+}
+
+.principles-header h1 {
+  font-size: 2.8rem;
+  margin-bottom: 16px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.principles-header .subtitle {
+  font-size: 1.1rem;
+  opacity: 0.95;
+}
+
+/* Dashboard Clock Styles */
+.dashboard-clock {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 16px 32px;
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.clock-time {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 300;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+}
+
+.clock-digits {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.clock-separator {
+  opacity: 0.7;
+  animation: blink 1s ease-in-out infinite;
+}
+
+.clock-seconds {
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+.clock-seconds-sep {
+  font-size: 1.5rem;
+}
+
+.clock-ampm {
+  font-size: 1rem;
+  margin-left: 8px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.clock-date {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-top: 8px;
+  text-align: center;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.3; }
+}
+
+/* Unified Summary Card Styles */
+.unified-summary-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 28px 32px;
+  margin-bottom: 40px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: calc(100% - 20px);
+  position: relative;
+  z-index: 1;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.summary-row.two-col {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 2px solid #f0f0f0;
+  gap: 40px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-icon-circle {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.total-circle {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 80px;
+  height: 80px;
+  font-size: 2.2rem;
+}
+
+.welcome-circle {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.goodbye-circle {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.summary-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.summary-number {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #1e3c72;
+  line-height: 1;
+}
+
+.total-item .summary-number {
+  font-size: 3.2rem;
+}
+
+.summary-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.summary-sublabel {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 400;
+}
+
+.welcome-item .summary-number {
+  color: #e91e63;
+}
+
+.goodbye-item .summary-number {
+  color: #00acc1;
+}
+
+.principles-scroll-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.section-title {
+  color: white;
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  text-align: center;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Mobile Responsive Summary */
+@media (max-width: 600px) {
+  .unified-summary-card {
+    padding: 24px 20px;
+    margin: 0 10px 30px 10px;
+  }
+  
+  .summary-row.two-col {
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 20px;
+    padding-top: 20px;
+  }
+  
+  .summary-icon-circle {
+    width: 60px;
+    height: 60px;
+    font-size: 1.8rem;
+  }
+  
+  .total-circle {
+    width: 70px;
+    height: 70px;
+    font-size: 2rem;
+  }
+  
+  .summary-number {
+    font-size: 2.2rem;
+  }
+  
+  .total-item .summary-number {
+    font-size: 2.6rem;
+  }
+  
+  .summary-label {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .unified-summary-card {
+    padding: 20px 16px;
+  }
+  
+  .summary-icon-circle {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+  
+  .total-circle {
+    width: 60px;
+    height: 60px;
+    font-size: 1.8rem;
+  }
+  
+  .summary-number {
+    font-size: 1.8rem;
+  }
+  
+  .total-item .summary-number {
+    font-size: 2.2rem;
+  }
+}
+
+.principles-loading,
+.principles-error {
+  color: white;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.principles-error {
+  color: #ffcdd2;
+}
+
+.principles-class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  max-width: 800px;
+  width: 100%;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.principles-class-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  padding: 24px 20px;
+  background: white;
+  border-radius: 16px;
+  text-decoration: none;
+  color: #333;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.principles-class-card:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+  border-color: #1e3c72;
+  color: #1e3c72;
+}
+
+.principles-class-card-disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+  background: #e0e0e0 !important;
+  color: #9e9e9e !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.principles-class-card-disabled .principles-class-students {
+  color: #9e9e9e;
+}
+
+/* Green when all students have gone home */
+.principles-class-card-all-gone {
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%) !important;
+  color: white !important;
+  border-color: #1b5e20 !important;
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+}
+
+.principles-class-card-all-gone .principles-class-students {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.principles-class-card.principles-class-card-all-gone:hover {
+  border-color: #4caf50;
+  color: white;
+  box-shadow: 0 8px 24px rgba(46, 125, 50, 0.5);
+}
+
+.principles-class-card-disabled.principles-class-card-all-gone {
+  background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.principles-class-card-disabled.principles-class-card-all-gone .principles-class-students {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.principles-class-label {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.principles-class-students {
+  font-size: 0.95rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.principles-class-card:hover .principles-class-students {
+  color: #2a5298;
+}
+
+.principles-actions {
+  margin-top: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.principles-back-link {
+  display: inline-block;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: white;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.principles-back-link:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+@media (max-width: 768px) {
+  .principles-view-page {
+    padding-top: 80px;
+  }
+  
+  .principles-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .principles-class-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 0 10px;
+  }
+  
+  .principles-view-page .principles-logo-header {
+    top: 15px;
+    right: 15px;
+  }
+  
+  .principles-view-page .principles-logo-left {
+    top: 15px;
+    left: 15px;
+    padding: 6px 10px;
+  }
+  
+  .principles-view-page .page-logo {
+    height: 45px;
+  }
+  
+  .dashboard-clock {
+    padding: 12px 20px;
+  }
+  
+  .clock-time {
+    font-size: 1.8rem;
+  }
+  
+  .clock-seconds {
+    font-size: 1.2rem;
+  }
+  
+  .clock-seconds-sep {
+    font-size: 1.2rem;
+  }
+  
+  .clock-date {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .principles-view-page {
+    padding: 20px 10px;
+    padding-top: 70px;
+  }
+  
+  .principles-header h1 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+  }
+  
+  .principles-header {
+    margin-bottom: 20px;
+  }
+
+  .principles-class-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    max-width: 100%;
+  }
+  
+  .principles-class-card {
+    min-height: 80px;
+    padding: 16px 12px;
+  }
+  
+  .principles-class-label {
+    font-size: 1rem;
+  }
+  
+  .principles-class-students {
+    font-size: 0.8rem;
+  }
+  
+  .principles-view-page .principles-logo-header {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .principles-view-page .principles-logo-left {
+    top: 10px;
+    left: 10px;
+    padding: 4px 8px;
+  }
+  
+  .principles-view-page .page-logo {
+    height: 35px;
+  }
+  
+  .dashboard-clock {
+    padding: 10px 16px;
+  }
+  
+  .clock-time {
+    font-size: 1.5rem;
+  }
+  
+  .clock-seconds, .clock-seconds-sep {
+    display: none;
+  }
+  
+  .clock-ampm {
+    font-size: 0.85rem;
+  }
+  
+  .clock-date {
+    font-size: 0.75rem;
+  }
+  
+  .section-title {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+  }
+  
+  .principles-back-link {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .principles-actions {
+    margin-top: 15px;
+  }
+}
+
+/* Low resolution / short viewport: compact layout so class grid is visible and scrollable */
+@media (max-height: 700px) {
+  .principles-view-page {
+    padding-top: 70px;
+    padding-bottom: 24px;
+  }
+  
+  .principles-header {
+    margin-bottom: 16px;
+  }
+  
+  .principles-header h1 {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+  }
+  
+  .dashboard-clock {
+    padding: 8px 16px;
+  }
+  
+  .clock-time {
+    font-size: 1.4rem;
+  }
+  
+  .clock-seconds, .clock-seconds-sep {
+    display: none;
+  }
+  
+  .clock-date {
+    font-size: 0.7rem;
+    margin-top: 4px;
+  }
+  
+  .unified-summary-card {
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  
+  .summary-row.two-col {
+    margin-top: 16px;
+    padding-top: 16px;
+    gap: 24px;
+  }
+  
+  .summary-icon-circle {
+    width: 50px;
+    height: 50px;
+    font-size: 1.4rem;
+  }
+  
+  .total-circle {
+    width: 60px;
+    height: 60px;
+    font-size: 1.6rem;
+  }
+  
+  .summary-number {
+    font-size: 2rem;
+  }
+  
+  .total-item .summary-number {
+    font-size: 2.4rem;
+  }
+  
+  .summary-label {
+    font-size: 0.85rem;
+  }
+  
+  .section-title {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+  
+  .principles-class-grid {
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  
+  .principles-class-card {
+    min-height: 72px;
+    padding: 12px 14px;
+  }
+  
+  .principles-class-label {
+    font-size: 1rem;
+  }
+  
+  .principles-class-students {
+    font-size: 0.8rem;
+  }
+  
+  .principles-actions {
+    margin-top: 12px;
+  }
+}
+
+@media (max-height: 550px) {
+  .principles-view-page {
+    padding-top: 60px;
+    padding-bottom: 16px;
+  }
+  
+  .principles-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .unified-summary-card {
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+  
+  .summary-icon-circle {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+  
+  .total-circle {
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+  
+  .summary-number {
+    font-size: 1.6rem;
+  }
+  
+  .total-item .summary-number {
+    font-size: 1.9rem;
+  }
+  
+  .principles-class-card {
+    min-height: 64px;
+    padding: 10px 12px;
+  }
+  
+  .principles-class-label {
+    font-size: 0.9rem;
+  }
+  
+  .principles-class-students {
+    font-size: 0.75rem;
+  }
+}
