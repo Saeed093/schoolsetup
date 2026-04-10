@@ -23,7 +23,8 @@ const { initializeRFIDReader } = require('./services/rfidService');
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+// Large base64 images (several guardians) expand ~4/3 in JSON — allow headroom
+app.use(express.json({ limit: '70mb' }));
 
 // Serve captured images (saved when card is scanned with camera)
 const uploadsPath = path.join(__dirname, 'uploads');

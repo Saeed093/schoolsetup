@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { getDatabase, logPickup } = require('../database/db');
+const { getGuardiansForRow, guardiansCompactForScan } = require('../utils/cardDisplay');
 
 const CAPTURES_DIR = path.join(__dirname, '..', 'uploads', 'captures');
 
@@ -89,10 +90,13 @@ router.post('/scan', (req, res) => {
 
     // Get the registered adult image (from cards table)
     const registeredAdultImage = row ? (row.adult_image ?? '') : '';
-    
+
     // Use the primary card_id for logging (the checkout card ID from the student record)
     const primaryCardId = row ? row.card_id : card_id;
-    
+
+    const guardiansList = row ? getGuardiansForRow(row) : [];
+    const guardiansVerify = guardiansCompactForScan(guardiansList);
+
     // Build result object
     const result = {
       type: 'card_scan',
@@ -109,6 +113,7 @@ router.post('/scan', (req, res) => {
       direction: scanDirection, // 'in' or 'out'
       found: isAuthorized,
       alarm_enabled: row ? row.alarm_enabled : 0,
+      guardians: guardiansVerify,
       timestamp: new Date().toISOString()
     };
 
@@ -137,26 +142,17 @@ router.post('/scan', (req, res) => {
       });
     }
 
-    // Handle alarm if enabled (only on check-out, not check-in)
-    if (!isCheckIn && row && row.alarm_enabled === 1) {
-      console.log(`[Capture] Alarm enabled for ${card_id}`);
-      if (global.sendAlarmToESP32) {
-        global.sendAlarmToESP32();
-      }
-      if (global.triggerArduinoAlarm) {
-        global.triggerArduinoAlarm();
-      }
-    }
-
     const actionMessage = isCheckIn ? 'Check-in recorded' : 'Pickup recorded';
 
     res.json({
       success: true,
       found: isAuthorized,
+      card_id: primaryCardId,
       student_name: result.student_name,
       student_class: result.student_class,
       captured_image: result.captured_image,
       direction: scanDirection,
+      guardians: guardiansVerify,
       message: isAuthorized ? actionMessage : 'Unknown card'
     });
   });
@@ -219,6 +215,9 @@ router.post('/add-image', (req, res) => {
     const primaryCardId = row ? row.card_id : card_id;
     const cacheBustedPath = capturedImagePath ? capturedImagePath + '?t=' + Date.now() : '';
 
+    const gList = row ? getGuardiansForRow(row) : [];
+    const gVerify = guardiansCompactForScan(gList);
+
     // Broadcast update
     if (global.broadcastToClients) {
       global.broadcastToClients({
@@ -232,6 +231,7 @@ router.post('/add-image', (req, res) => {
         pickup_image: cacheBustedPath,
         adult_image: row ? (row.adult_image ?? '') : '',
         child_image: row ? (row.child_image ?? '') : '',
+        guardians: gVerify,
         direction: scanDirection,
         timestamp: new Date().toISOString()
       });
@@ -273,6 +273,28 @@ router.post('/add-image', (req, res) => {
       direction: scanDirection
     });
   });
+});
+
+/**
+ * Capture Station: guardian face check failed (no hardware alarm).
+ * Broadcasts to all WebSocket clients so Principal dashboard can show a banner.
+ */
+router.post('/face-no-match-notify', (req, res) => {
+  const body = req.body || {};
+  const payload = {
+    type: 'face_no_match',
+    card_id: String(body.card_id || ''),
+    student_name: String(body.student_name || 'Unknown'),
+    student_class: String(body.student_class || ''),
+    confidence: typeof body.confidence === 'number' ? body.confidence : null,
+    best_label: String(body.best_label || ''),
+    timestamp: new Date().toISOString()
+  };
+  console.log('[Capture] Face no-match notify (broadcast only):', payload.card_id, payload.student_name);
+  if (global.broadcastToClients) {
+    global.broadcastToClients(payload);
+  }
+  res.json({ success: true });
 });
 
 module.exports = router;

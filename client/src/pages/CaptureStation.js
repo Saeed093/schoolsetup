@@ -1,7 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './CaptureStation.css';
 import { getApiBase, getWebSocketUrl } from '../utils/connection';
+import {
+  verifyLiveCaptureToGuardians,
+  loadFaceModelsOnce,
+  areFaceModelsReady,
+  getFaceRecognitionEnabled,
+  FACE_SETTINGS_CHANGED_EVENT
+} from '../utils/faceVerification';
+import FaceNoMatchBanner from '../components/FaceNoMatchBanner';
 
 /**
  * CaptureStation - Runs on the server machine with RFID reader + camera.
@@ -31,7 +39,20 @@ function CaptureStation() {
   // Last capture info
   const [lastCapture, setLastCapture] = useState(null);
   const [captureStatus, setCaptureStatus] = useState('Initializing camera...');
-  
+  const [faceMatchResult, setFaceMatchResult] = useState(null);
+  /** True while face-api is loading models or comparing faces (first scan can take several seconds). */
+  const [faceMatchPending, setFaceMatchPending] = useState(false);
+  /** Banner payload when last checkout face check was NO (authorized card, face not matched) */
+  const [faceNoMatchAlert, setFaceNoMatchAlert] = useState(null);
+  const [frsEnabled, setFrsEnabled] = useState(() => getFaceRecognitionEnabled());
+  /** Full-page gate while face-api weights load (checkout + FRS on); scans are ignored until cleared. */
+  const [frsModelsLoadingGate, setFrsModelsLoadingGate] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      getFaceRecognitionEnabled() && !areFaceModelsReady()
+    );
+  });
+
   // Refs
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -44,8 +65,143 @@ function CaptureStation() {
   const mountedRef = useRef(true);
   const stationModeRef = useRef('out'); // Ref for async access
   const localScanDebounceRef = useRef(new Map()); // Track locally-initiated scans to prevent WS double-processing
-  
+  const prevFrsEnabledRef = useRef(null);
+
   const API_BASE = getApiBase();
+
+  const runFaceVerification = useCallback(
+    async (capturedDataUrl, guardiansList, found, scanContext) => {
+      if (!capturedDataUrl || !found) {
+        setFaceMatchResult(null);
+        setFaceNoMatchAlert(null);
+        setFaceMatchPending(false);
+        return;
+      }
+      if (!getFaceRecognitionEnabled()) {
+        setFaceMatchResult({
+          status: 'disabled',
+          message: 'Face recognition is turned off in Admin (Test Tools).',
+          yes: false,
+          confidence: 0,
+          bestLabel: '',
+          matchedGuardian: null
+        });
+        setFaceNoMatchAlert(null);
+        setFaceMatchPending(false);
+        return;
+      }
+      setFaceMatchPending(true);
+      try {
+        const r = await verifyLiveCaptureToGuardians(capturedDataUrl, guardiansList || []);
+        setFaceMatchResult(r);
+
+        if (r.status === 'ok' && !r.yes) {
+          const alertPayload = {
+            student_name: scanContext?.student_name || '',
+            student_class: scanContext?.student_class || '',
+            card_id: scanContext?.card_id || '',
+            confidence: r.confidence,
+            best_label: r.bestLabel || ''
+          };
+          setFaceNoMatchAlert(alertPayload);
+          try {
+            const res = await fetch(`${API_BASE}/api/capture/face-no-match-notify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(alertPayload)
+            });
+            if (!res.ok) {
+              console.warn('[CaptureStation] Face no-match notify HTTP', res.status);
+            }
+          } catch (notifyErr) {
+            console.error('[CaptureStation] Face no-match notify failed:', notifyErr);
+          }
+        } else {
+          setFaceNoMatchAlert(null);
+        }
+      } catch (e) {
+        console.error('[CaptureStation] Face verification error:', e);
+        setFaceMatchResult({
+          status: 'error',
+          message: e.message || 'Face check failed',
+          yes: false,
+          confidence: 0,
+          bestLabel: '',
+          matchedGuardian: null
+        });
+        setFaceNoMatchAlert(null);
+      } finally {
+        setFaceMatchPending(false);
+      }
+    },
+    [API_BASE]
+  );
+
+  useEffect(() => {
+    const syncFrs = () => setFrsEnabled(getFaceRecognitionEnabled());
+    window.addEventListener('storage', syncFrs);
+    window.addEventListener(FACE_SETTINGS_CHANGED_EVENT, syncFrs);
+    return () => {
+      window.removeEventListener('storage', syncFrs);
+      window.removeEventListener(FACE_SETTINGS_CHANGED_EVENT, syncFrs);
+    };
+  }, []);
+
+  // Start preloading face models immediately on mount so weights download
+  // and GPU warm-up happen in the background before the first scan.
+  useEffect(() => {
+    if (getFaceRecognitionEnabled() && !areFaceModelsReady()) {
+      loadFaceModelsOnce().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const needModels = stationMode === 'out' && frsEnabled;
+    if (!needModels) {
+      setFrsModelsLoadingGate(false);
+      return;
+    }
+    if (areFaceModelsReady()) {
+      setFrsModelsLoadingGate(false);
+      return;
+    }
+    setFrsModelsLoadingGate(true);
+    let cancelled = false;
+    loadFaceModelsOnce()
+      .catch((err) => console.warn('[CaptureStation] Face models load failed:', err))
+      .finally(() => {
+        if (!cancelled && mountedRef.current) {
+          setFrsModelsLoadingGate(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [stationMode, frsEnabled]);
+
+  useEffect(() => {
+    if (stationMode === 'in') {
+      setFaceMatchResult(null);
+      setFaceNoMatchAlert(null);
+      setFaceMatchPending(false);
+    }
+  }, [stationMode]);
+
+  /** Clear face UI only when FRS is turned off (was on), not on every render while off — else "disabled" scan feedback would vanish. */
+  useEffect(() => {
+    if (prevFrsEnabledRef.current === null) {
+      prevFrsEnabledRef.current = frsEnabled;
+      return;
+    }
+    const wasOn = prevFrsEnabledRef.current;
+    prevFrsEnabledRef.current = frsEnabled;
+    if (stationMode === 'out' && wasOn && !frsEnabled) {
+      setFaceMatchResult(null);
+      setFaceMatchPending(false);
+      setFaceNoMatchAlert(null);
+    }
+  }, [stationMode, frsEnabled]);
 
   // Stop camera (used when switching to check-in mode)
   const stopCamera = () => {
@@ -294,12 +450,16 @@ function CaptureStation() {
                 const actionLabel = isIn ? 'Arrived' : 'Left';
                 const actionIcon = isIn ? '📥' : '📤';
                 console.log(`[CaptureStation] Admin-simulated ${dir} scan for:`, data.student_name || data.card_id);
+                setFaceMatchResult(null);
+                setFaceMatchPending(false);
+                setFaceNoMatchAlert(null);
                 setLastCapture({
                   cardId: data.card_id,
                   studentName: data.student_name || data.name || 'Unknown',
                   timestamp: data.timestamp || new Date().toISOString(),
                   hasImage: !!data.pickup_image,
-                  direction: dir
+                  direction: dir,
+                  faceCheckSkipped: false
                 });
                 setCaptureStatus(`${actionIcon} ${actionLabel}: ${data.student_name || data.name || data.card_id}`);
                 return;
@@ -348,13 +508,20 @@ function CaptureStation() {
                     studentName: data.student_name,
                     timestamp: new Date().toISOString(),
                     hasImage: false,
-                    direction: 'in'
+                    direction: 'in',
+                    faceCheckSkipped: false
                   });
                   setCaptureStatus(`✅ Arrived: ${data.student_name || data.card_id}`);
                 } catch (err) {
                   console.error('[CaptureStation] Error processing arrival:', err);
                   setCaptureStatus(`❌ Failed to process arrival`);
                 }
+                return;
+              }
+
+              if (getFaceRecognitionEnabled() && !areFaceModelsReady()) {
+                console.log('[CaptureStation] Checkout scan ignored — FRS models still loading');
+                setCaptureStatus('⏳ Face recognition is still loading — please wait…');
                 return;
               }
 
@@ -366,11 +533,13 @@ function CaptureStation() {
                 canvas.height = video.videoHeight || 480;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+                const capturedImage = canvas.toDataURL('image/jpeg', 0.95);
                 
                 console.log('[CaptureStation] Auto-capturing for:', data.card_id);
                 setCaptureStatus(`Capturing for: ${data.student_name || data.card_id}`);
-                
+                setFaceMatchResult(null);
+                setFaceMatchPending(false);
+
                 // Send captured image to server
                 try {
                   await fetch(`${API_BASE}/api/capture/add-image`, {
@@ -387,15 +556,34 @@ function CaptureStation() {
                     studentName: data.student_name,
                     timestamp: new Date().toISOString(),
                     hasImage: true,
-                    direction: 'out'
+                    direction: 'out',
+                    faceCheckSkipped: false
                   });
                   setCaptureStatus(`✅ Left: ${data.student_name || data.card_id}`);
+                  await runFaceVerification(capturedImage, data.guardians, data.found, {
+                    card_id: data.card_id,
+                    student_name: data.student_name,
+                    student_class: data.student_class
+                  });
                 } catch (err) {
                   console.error('[CaptureStation] Error sending image:', err);
                   setCaptureStatus(`❌ Failed to send image`);
+                  setFaceMatchPending(false);
                 }
               } else {
                 setCaptureStatus(`⚠️ Camera not ready for capture`);
+                setFaceMatchResult(null);
+                setFaceMatchPending(false);
+                if (data.found) {
+                  setLastCapture({
+                    cardId: data.card_id,
+                    studentName: data.student_name,
+                    timestamp: new Date().toISOString(),
+                    hasImage: false,
+                    direction: 'out',
+                    faceCheckSkipped: true
+                  });
+                }
               }
             }
           } catch (err) {
@@ -424,7 +612,7 @@ function CaptureStation() {
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (wsRef.current) wsRef.current.close(1000, 'Unmount');
     };
-  }, [API_BASE]);
+  }, [API_BASE, runFaceVerification]);
 
   // Handle keyboard-wedge scanner input
   const handleScan = async (cardId) => {
@@ -433,6 +621,18 @@ function CaptureStation() {
 
     const currentDirection = stationModeRef.current;
     const isCheckIn = currentDirection === 'in';
+    if (
+      !isCheckIn &&
+      getFaceRecognitionEnabled() &&
+      !areFaceModelsReady()
+    ) {
+      setCaptureStatus('⏳ Face recognition is still loading — please wait…');
+      return;
+    }
+
+    setFaceMatchResult(null);
+    setFaceMatchPending(false);
+
     const modeLabel = isCheckIn ? 'Arriving' : 'Leaving';
     console.log(`[CaptureStation] Manual scan (${modeLabel}):`, cleanedId);
     setCaptureStatus(`Scanning (${modeLabel}): ${cleanedId}`);
@@ -455,7 +655,7 @@ function CaptureStation() {
       canvas.height = video.videoHeight || 480;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      capturedImage = canvas.toDataURL('image/jpeg', 0.8);
+      capturedImage = canvas.toDataURL('image/jpeg', 0.95);
     }
 
     try {
@@ -478,15 +678,32 @@ function CaptureStation() {
           studentName: result.student_name,
           timestamp: new Date().toISOString(),
           hasImage: !isCheckIn && !!capturedImage,
-          direction: currentDirection
+          direction: currentDirection,
+          faceCheckSkipped: !isCheckIn && !!result.found && !capturedImage
         });
         setCaptureStatus(`✅ ${actionLabel}: ${result.student_name || cleanedId}`);
+        if (!isCheckIn && capturedImage && result.found) {
+          await runFaceVerification(capturedImage, result.guardians, true, {
+            card_id: result.card_id || cleanedId,
+            student_name: result.student_name,
+            student_class: result.student_class
+          });
+        } else {
+          setFaceMatchResult(null);
+          setFaceNoMatchAlert(null);
+          setFaceMatchPending(false);
+        }
       } else {
         setCaptureStatus(`⚠️ ${result.message || 'Unknown card'}`);
+        setFaceMatchResult(null);
+        setFaceNoMatchAlert(null);
+        setFaceMatchPending(false);
       }
     } catch (error) {
       console.error('[CaptureStation] Scan error:', error);
       setCaptureStatus(`❌ Error: ${error.message}`);
+      setFaceNoMatchAlert(null);
+      setFaceMatchPending(false);
     }
   };
 
@@ -549,6 +766,34 @@ function CaptureStation() {
 
   return (
     <div className="capture-station-page">
+      {frsModelsLoadingGate && stationMode === 'out' && frsEnabled && (
+        <div
+          className="capture-frs-loading-modal"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="capture-frs-loading-title"
+          aria-describedby="capture-frs-loading-desc"
+        >
+          <div className="capture-frs-loading-card">
+            <div className="capture-frs-loading-spinner" aria-hidden="true" />
+            <h2 id="capture-frs-loading-title" className="capture-frs-loading-title">
+              Preparing face recognition
+            </h2>
+            <p id="capture-frs-loading-desc" className="capture-frs-loading-desc">
+              Downloading models and warming up the engine — this only happens once after a page refresh.
+              Scans are paused until everything is ready.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {stationMode === 'out' && (
+        <FaceNoMatchBanner
+          alert={faceNoMatchAlert}
+          onDismiss={() => setFaceNoMatchAlert(null)}
+        />
+      )}
+
       {/* Hidden input for keyboard-wedge scanner */}
       <input
         ref={scanInputRef}
@@ -690,15 +935,147 @@ function CaptureStation() {
             {/* Status & Last Capture */}
             <div className="capture-info-section">
               {lastCapture && lastCapture.direction === 'out' && (
-                <div className="last-capture-box capture-out">
-                  <h3>Last Departure</h3>
-                  <div className="last-capture-info">
-                    <p><strong>Card:</strong> {lastCapture.cardId}</p>
-                    <p><strong>Student:</strong> {lastCapture.studentName || 'Unknown'}</p>
-                    <p><strong>Time:</strong> {new Date(lastCapture.timestamp).toLocaleTimeString()}</p>
-                    <p><strong>Image:</strong> {lastCapture.hasImage ? '✅ Captured' : '❌ No image'}</p>
+                <>
+                  <div className="last-capture-box capture-out">
+                    <h3>Last Departure</h3>
+                    <div className="last-capture-info">
+                      <p><strong>Card:</strong> {lastCapture.cardId}</p>
+                      <p><strong>Student:</strong> {lastCapture.studentName || 'Unknown'}</p>
+                      <p><strong>Time:</strong> {new Date(lastCapture.timestamp).toLocaleTimeString()}</p>
+                      <p><strong>Image:</strong> {lastCapture.hasImage ? '✅ Captured' : '❌ No image'}</p>
+                    </div>
+                    {lastCapture.faceCheckSkipped && (
+                      <p className="last-capture-face-hint">
+                        ⚠️ No pickup photo — guardian face check was skipped. Wait until the camera shows LIVE, then scan again.
+                      </p>
+                    )}
                   </div>
-                </div>
+
+                  {(lastCapture.faceCheckSkipped ||
+                    (lastCapture.hasImage && (faceMatchPending || faceMatchResult))) && (
+                    <div
+                      className={`guardian-face-check-box face-match-panel ${
+                        lastCapture.faceCheckSkipped
+                          ? 'face-match-muted'
+                          : faceMatchPending
+                          ? 'face-match-pending-panel'
+                          : faceMatchResult?.status === 'disabled'
+                          ? 'face-match-muted'
+                          : faceMatchResult?.status === 'ok'
+                          ? faceMatchResult.yes
+                            ? 'face-match-yes'
+                            : 'face-match-no'
+                          : 'face-match-muted'
+                      }`}
+                    >
+                      <h3 className="guardian-face-check-heading">Guardian face check</h3>
+                      {lastCapture.faceCheckSkipped && (
+                        <>
+                          <div className="face-match-verdict">Skipped — no photo</div>
+                          <div className="face-match-detail">
+                            The camera did not capture an image for this scan. Face matching needs a live photo at checkout.
+                          </div>
+                        </>
+                      )}
+                      {!lastCapture.faceCheckSkipped && faceMatchPending && (
+                        <div className="face-match-pending-block">
+                          <div className="face-match-pending-spinner" aria-hidden="true" />
+                          <p className="face-match-pending-title">Analyzing face…</p>
+                          <p className="face-match-pending-hint">
+                            The first check can take 10–30 seconds while face models load in the browser.
+                          </p>
+                        </div>
+                      )}
+                      {!lastCapture.faceCheckSkipped &&
+                        !faceMatchPending &&
+                        faceMatchResult &&
+                        faceMatchResult.status === 'disabled' && (
+                        <>
+                          <div className="face-match-verdict">Face recognition off</div>
+                          <div className="face-match-detail">
+                            {faceMatchResult.message ||
+                              'Turn it on in Admin → Test Tools when you want guardian matching at checkout.'}
+                          </div>
+                        </>
+                      )}
+                      {!lastCapture.faceCheckSkipped &&
+                        !faceMatchPending &&
+                        faceMatchResult &&
+                        faceMatchResult.status === 'ok' &&
+                        faceMatchResult.yes && (
+                        <div className="face-match-matched-row">
+                          {faceMatchResult.matchedGuardian?.image ? (
+                            <img
+                              className="face-match-matched-photo"
+                              src={faceMatchResult.matchedGuardian.image}
+                              alt=""
+                            />
+                          ) : (
+                            <div className="face-match-matched-photo face-match-matched-photo-placeholder">
+                              👤
+                            </div>
+                          )}
+                          <div className="face-match-matched-text">
+                            <div className="face-match-verdict">YES — Match</div>
+                            <div className="face-match-matched-name">
+                              {faceMatchResult.matchedGuardian?.label ||
+                                faceMatchResult.matchedGuardian?.name ||
+                                faceMatchResult.bestLabel ||
+                                'Matched guardian'}
+                            </div>
+                            {typeof faceMatchResult.confidence === 'number' && (
+                              <div className="face-match-confidence">
+                                {faceMatchResult.confidence}% confidence
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {!lastCapture.faceCheckSkipped &&
+                        !faceMatchPending &&
+                        faceMatchResult &&
+                        faceMatchResult.status === 'ok' &&
+                        !faceMatchResult.yes && (
+                        <>
+                          <div className="face-match-verdict">NO — No match</div>
+                          {faceMatchResult.matchedGuardian &&
+                            (faceMatchResult.matchedGuardian.label || faceMatchResult.matchedGuardian.name) && (
+                              <div className="face-match-detail face-match-closest">
+                                Closest on file:{' '}
+                                {faceMatchResult.matchedGuardian.label ||
+                                  faceMatchResult.matchedGuardian.name}
+                                {typeof faceMatchResult.confidence === 'number'
+                                  ? ` (${faceMatchResult.confidence}%)`
+                                  : ''}
+                              </div>
+                            )}
+                        </>
+                      )}
+                      {!lastCapture.faceCheckSkipped &&
+                        !faceMatchPending &&
+                        faceMatchResult &&
+                        faceMatchResult.status === 'no_face' && (
+                        <div className="face-match-verdict">No face detected in capture</div>
+                      )}
+                      {!lastCapture.faceCheckSkipped &&
+                        !faceMatchPending &&
+                        faceMatchResult &&
+                        faceMatchResult.status === 'no_refs' && (
+                        <div className="face-match-verdict">No reference faces on file</div>
+                      )}
+                      {!lastCapture.faceCheckSkipped &&
+                        !faceMatchPending &&
+                        faceMatchResult &&
+                        (faceMatchResult.status === 'error' || faceMatchResult.message) &&
+                        faceMatchResult.status !== 'ok' &&
+                        faceMatchResult.status !== 'no_face' &&
+                        faceMatchResult.status !== 'no_refs' &&
+                        faceMatchResult.status !== 'disabled' && (
+                          <div className="face-match-detail">{faceMatchResult.message}</div>
+                        )}
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="capture-instructions">

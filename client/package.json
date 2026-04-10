@@ -4,19 +4,24 @@
   "private": true,
   "proxy": "http://localhost:5000",
   "dependencies": {
+    "@tensorflow/tfjs": "^1.7.4",
     "axios": "^1.6.2",
+    "face-api.js": "^0.22.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.3",
     "react-scripts": "5.0.1"
   },
   "scripts": {
-    "start": "set HOST=0.0.0.0&& set DANGEROUSLY_DISABLE_HOST_CHECK=true&& react-scripts start",
-    "start:https": "set HTTPS=true&& set SSL_CRT_FILE=..\\\\certs\\\\dev-cert.pem&& set SSL_KEY_FILE=..\\\\certs\\\\dev-key.pem&& set HOST=0.0.0.0&& set DANGEROUSLY_DISABLE_HOST_CHECK=true&& react-scripts start",
-    "start:https:linux": "HTTPS=true SSL_CRT_FILE=../certs/dev-cert.pem SSL_KEY_FILE=../certs/dev-key.pem HOST=0.0.0.0 DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "set HOST=0.0.0.0&& set DANGEROUSLY_DISABLE_HOST_CHECK=true&& react-app-rewired start",
+    "start:https": "set HTTPS=true&& set SSL_CRT_FILE=..\\\\certs\\\\dev-cert.pem&& set SSL_KEY_FILE=..\\\\certs\\\\dev-key.pem&& set HOST=0.0.0.0&& set DANGEROUSLY_DISABLE_HOST_CHECK=true&& react-app-rewired start",
+    "start:https:linux": "HTTPS=true SSL_CRT_FILE=../certs/dev-cert.pem SSL_KEY_FILE=../certs/dev-key.pem HOST=0.0.0.0 DANGEROUSLY_DISABLE_HOST_CHECK=true react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
+  },
+  "devDependencies": {
+    "react-app-rewired": "^2.2.1"
   },
   "eslintConfig": {
     "extends": [

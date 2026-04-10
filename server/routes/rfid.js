@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDatabase } = require('../database/db');
 const { activateReader, deactivateReader, getReaderStatus } = require('../services/rfidService');
+const { getGuardiansForRow, guardiansCompactForScan } = require('../utils/cardDisplay');
 
 // Get reader status
 router.get('/status', (req, res) => {
@@ -50,6 +51,9 @@ router.post('/scan', (req, res) => {
       adultImage = adultImage + '?t=' + Date.now();
     }
     
+    const guardiansList = row ? getGuardiansForRow(row) : [];
+    const guardiansVerify = guardiansCompactForScan(guardiansList);
+
     const result = {
       card_id,
       student_name: row ? (row.student_name ?? row.name) : 'Unknown',
@@ -57,6 +61,7 @@ router.post('/scan', (req, res) => {
       adult_name: row ? (row.adult_name ?? '') : '',
       adult_image: adultImage,
       child_image: row ? (row.child_image ?? '') : '',
+      guardians: guardiansVerify,
       found: !!row,
       alarm_enabled: row ? row.alarm_enabled : 0,
       timestamp: new Date().toISOString()

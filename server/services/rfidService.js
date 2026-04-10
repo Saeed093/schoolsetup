@@ -268,16 +268,20 @@ function handleCardScan(cardId) {
 // Helper function to broadcast the result
 function broadcastResult(scannedCardId, row) {
   const isAuthorized = !!row;
-  
+  const { getGuardiansForRow, guardiansCompactForScan } = require('../utils/cardDisplay');
+
   // Use the primary card_id (checkout card) for tracking, even if a check-in card was scanned
   const primaryCardId = row ? row.card_id : scannedCardId;
-  
+
   // Add cache-busting for captured images (in /uploads/captures/)
   let adultImage = row ? (row.adult_image ?? '') : '';
   if (adultImage && adultImage.includes('/uploads/captures/')) {
     adultImage = adultImage + '?t=' + Date.now();
   }
-  
+
+  const guardiansList = row ? getGuardiansForRow(row) : [];
+  const guardiansVerify = guardiansCompactForScan(guardiansList);
+
   const result = {
     type: 'card_scan',
     card_id: primaryCardId, // Use primary checkout card ID for tracking
@@ -287,6 +291,7 @@ function broadcastResult(scannedCardId, row) {
     adult_name: row ? (row.adult_name ?? '') : '',
     adult_image: adultImage,
     child_image: row ? (row.child_image ?? '') : '',
+    guardians: guardiansVerify,
     // backward-compat alias (older UI code)
     name: row ? (row.student_name ?? row.name) : 'Unknown',
     found: isAuthorized,

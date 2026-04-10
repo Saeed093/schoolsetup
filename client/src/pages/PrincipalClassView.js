@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import './ClassView.css';
 import './PrincipalClassView.css';
+import FaceNoMatchBanner from '../components/FaceNoMatchBanner';
 
 const API_BASE = '';
 const imageSrc = (path) => path;
@@ -21,6 +22,7 @@ function PrincipalClassView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [detailPopup, setDetailPopup] = useState(null);
+  const [faceNoMatchAlert, setFaceNoMatchAlert] = useState(null);
 
   const labelMap = {
     '1': 'Class 1',
@@ -82,6 +84,15 @@ function PrincipalClassView() {
               console.log('[PrincipalClassView] Received event, refreshing pickups:', data.type);
               fetchPickups(cid);
             }
+            if (data.type === 'face_no_match') {
+              setFaceNoMatchAlert({
+                student_name: data.student_name,
+                student_class: data.student_class,
+                card_id: data.card_id,
+                confidence: data.confidence,
+                best_label: data.best_label
+              });
+            }
           } catch (e) {
             // Ignore non-JSON messages
           }
@@ -131,6 +142,11 @@ function PrincipalClassView() {
       <div className="class-view-logo-header">
         <img src="/images/logo.png" alt="School Logo" className="page-logo" />
       </div>
+
+      <FaceNoMatchBanner
+        alert={faceNoMatchAlert}
+        onDismiss={() => setFaceNoMatchAlert(null)}
+      />
 
       <header className="class-view-header">
         <h1>{classLabel} — Pickups</h1>

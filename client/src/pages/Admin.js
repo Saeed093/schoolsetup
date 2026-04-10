@@ -1,10 +1,97 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './Admin.css';
+import {
+  getFaceMatchThreshold,
+  setFaceMatchThreshold,
+  FACE_MATCH_THRESHOLD_MIN,
+  FACE_MATCH_THRESHOLD_MAX,
+  getFaceRecognitionEnabled,
+  setFaceRecognitionEnabled,
+  FACE_SETTINGS_CHANGED_EVENT
+} from '../utils/faceVerification';
 
 const ADMIN_PASSWORD = 'system1234';
 // Same-origin API (dev server proxies to backend; production runs on same host)
 const API_BASE = '';
+
+function FaceRecognitionSettings() {
+  const [frsOn, setFrsOn] = useState(() => getFaceRecognitionEnabled());
+  const [threshold, setThreshold] = useState(() => getFaceMatchThreshold());
+
+  useEffect(() => {
+    const sync = () => {
+      setFrsOn(getFaceRecognitionEnabled());
+      setThreshold(getFaceMatchThreshold());
+    };
+    window.addEventListener('storage', sync);
+    window.addEventListener(FACE_SETTINGS_CHANGED_EVENT, sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener(FACE_SETTINGS_CHANGED_EVENT, sync);
+    };
+  }, []);
+
+  return (
+    <section className="admin-section admin-face-recognition-section">
+      <h2>Facial recognition (capture station)</h2>
+      <p className="admin-desc">
+        Guardian face matching when students leave. Pickup photos and RFID logs are still saved when this is off.
+      </p>
+
+      <div className="admin-frs-toggle-row">
+        <div className="admin-frs-toggle-copy">
+          <span className="admin-frs-toggle-label" id="admin-frs-toggle-label">
+            Enable face recognition
+          </span>
+          <span className={`admin-frs-pill ${frsOn ? 'admin-frs-pill-on' : 'admin-frs-pill-off'}`}>
+            {frsOn ? 'On' : 'Off'}
+          </span>
+        </div>
+        <button
+          type="button"
+          className={`admin-switch ${frsOn ? 'admin-switch-on' : ''}`}
+          role="switch"
+          aria-checked={frsOn}
+          aria-labelledby="admin-frs-toggle-label"
+          onClick={() => {
+            const next = setFaceRecognitionEnabled(!frsOn);
+            setFrsOn(next);
+          }}
+        >
+          <span className="admin-switch-knob" />
+        </button>
+      </div>
+
+      <div className={`admin-face-accuracy-block ${!frsOn ? 'admin-face-accuracy-disabled' : ''}`}>
+        <h3 className="admin-face-accuracy-title">Face verification accuracy</h3>
+        <p className="admin-face-accuracy-help">
+          Minimum match score required at the capture station. Lower is more permissive; higher reduces false acceptances.
+        </p>
+        <div className="admin-face-accuracy-row">
+          <input
+            type="range"
+            min={FACE_MATCH_THRESHOLD_MIN}
+            max={FACE_MATCH_THRESHOLD_MAX}
+            step={1}
+            value={threshold}
+            disabled={!frsOn}
+            onChange={(e) => {
+              const v = setFaceMatchThreshold(Number(e.target.value));
+              setThreshold(v);
+            }}
+            className="admin-face-accuracy-slider"
+            aria-valuemin={FACE_MATCH_THRESHOLD_MIN}
+            aria-valuemax={FACE_MATCH_THRESHOLD_MAX}
+            aria-valuenow={threshold}
+            aria-label="Face match minimum percent"
+          />
+          <span className="admin-face-accuracy-value">{threshold}%</span>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function Admin() {
   const [password, setPassword] = useState('');
@@ -272,6 +359,8 @@ function Admin() {
       </div>
 
       <main className="admin-main">
+        <FaceRecognitionSettings />
+
         {/* Camera Section */}
         <section className="admin-section admin-section-camera">
           <h2>📷 Live Camera Capture</h2>

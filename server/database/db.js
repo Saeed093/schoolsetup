@@ -130,6 +130,14 @@ function initializeDatabase() {
             console.log('Migration complete.');
           }
 
+          const colsAfter = await all(db, `PRAGMA table_info(cards)`);
+          const colNamesAfter = new Set(colsAfter.map((c) => c.name));
+          if (!colNamesAfter.has('guardians_json')) {
+            console.log('Migrating cards schema: adding guardians_json...');
+            await run(db, `ALTER TABLE cards ADD COLUMN guardians_json TEXT DEFAULT ''`);
+            console.log('Migration complete.');
+          }
+
           // Pickups log (for Principal view: who was picked up, when, guardian photo)
           await run(
             db,

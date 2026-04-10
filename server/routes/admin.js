@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 const { getDatabase } = require('../database/db');
+const { getGuardiansForRow, guardiansCompactForScan } = require('../utils/cardDisplay');
 
 const ADMIN_PASSWORD = 'system1234';
 
@@ -96,16 +97,20 @@ router.post('/simulate-scan', checkPassword, (req, res) => {
 
     // Add cache-busting timestamp for live captures so browser fetches new image
     const cacheBuster = isLiveCapture ? `?t=${Date.now()}` : '';
-    
+
+    const guardiansList = row ? getGuardiansForRow(row) : [];
+    const guardiansVerify = guardiansCompactForScan(guardiansList);
+
     const payload = {
       type: 'card_scan',
       card_id: cardId,
       student_name: row ? (row.student_name ?? row.name) : 'Unknown',
       student_class: row ? (row.student_class ?? '') : '',
       adult_name: row ? (row.adult_name ?? '') : '',
-      adult_image: storedAdultImage,  // Always use stored guardian image
+      adult_image: storedAdultImage, // Always use stored guardian image
       child_image: row ? (row.child_image ?? '') : '',
-      pickup_image: pickupImage ? (pickupImage + cacheBuster) : '',  // Live capture goes here
+      pickup_image: pickupImage ? pickupImage + cacheBuster : '', // Live capture goes here
+      guardians: guardiansVerify,
       name: row ? (row.student_name ?? row.name) : 'Unknown',
       found: !!row,
       timestamp: new Date().toISOString(),

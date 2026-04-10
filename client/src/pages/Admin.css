@@ -401,3 +401,140 @@
     max-width: 100%;
   }
 }
+
+/* Face recognition settings */
+.admin-face-recognition-section {
+  border: 2px solid #e8eaf6;
+  background: linear-gradient(180deg, #fafbff 0%, #ffffff 100%);
+}
+
+.admin-frs-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.admin-frs-toggle-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-frs-toggle-label {
+  font-weight: 700;
+  color: #1a237e;
+  font-size: 1rem;
+}
+
+.admin-frs-pill {
+  display: inline-block;
+  width: fit-content;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.admin-frs-pill-on {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.admin-frs-pill-off {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.admin-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #bdbdbd;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.admin-switch-on {
+  background: #3949ab;
+}
+
+.admin-switch:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 3px;
+}
+
+.admin-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.admin-switch-on .admin-switch-knob {
+  transform: translateX(22px);
+}
+
+.admin-face-accuracy-block {
+  padding-top: 4px;
+}
+
+.admin-face-accuracy-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.admin-face-accuracy-title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  color: #1a237e;
+}
+
+.admin-face-accuracy-help {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.45;
+}
+
+.admin-face-accuracy-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-face-accuracy-slider {
+  flex: 1;
+  min-width: 0;
+  height: 8px;
+  accent-color: #3949ab;
+  cursor: pointer;
+}
+
+.admin-face-accuracy-slider:disabled {
+  cursor: not-allowed;
+}
+
+.admin-face-accuracy-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1a237e;
+  min-width: 3.5rem;
+  text-align: right;
+}

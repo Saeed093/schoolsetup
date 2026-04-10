@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './PrinciplesView.css';
+import FaceNoMatchBanner from '../components/FaceNoMatchBanner';
 
 // Use same-origin API so data loads on any device/resolution (proxy in dev, same host in prod)
 const API_BASE = '';
@@ -53,6 +54,7 @@ function DashboardClock() {
 function PrinciplesView() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [faceNoMatchAlert, setFaceNoMatchAlert] = useState(null);
 
   const fetchClasses = async () => {
     try {
@@ -115,6 +117,15 @@ function PrinciplesView() {
               console.log('[PrinciplesView] Received scan event, refreshing data...');
               fetchClasses();
             }
+            if (data.type === 'face_no_match') {
+              setFaceNoMatchAlert({
+                student_name: data.student_name,
+                student_class: data.student_class,
+                card_id: data.card_id,
+                confidence: data.confidence,
+                best_label: data.best_label
+              });
+            }
           } catch (e) {
             // Ignore non-JSON messages
           }
@@ -159,6 +170,11 @@ function PrinciplesView() {
       <div className="principles-logo-header">
         <img src="/images/logo.png" alt="School Logo" className="page-logo" />
       </div>
+
+      <FaceNoMatchBanner
+        alert={faceNoMatchAlert}
+        onDismiss={() => setFaceNoMatchAlert(null)}
+      />
       
       <header className="principles-header">
         <h1>Principal&apos;s Dashboard</h1>

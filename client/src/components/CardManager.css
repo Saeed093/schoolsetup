@@ -365,3 +365,141 @@
 .card-id-checkin .card-id-label {
   color: #2e7d32;
 }
+
+.guardian-section-intro {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.guardian-row {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #dee2e6;
+}
+
+.guardian-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.guardian-row-title {
+  font-weight: 600;
+  color: #495057;
+}
+
+.guardian-remove-btn {
+  flex-shrink: 0;
+  background: #fff;
+  color: #c62828;
+  border: 2px solid #ef9a9a;
+  font-weight: 600;
+}
+
+.guardian-remove-btn:hover {
+  background: #ffebee;
+  border-color: #e57373;
+}
+
+.guardian-remove-hint {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.guardian-photo-preview {
+  flex-wrap: wrap;
+}
+
+.btn-clear-photo {
+  background: #fff8e1;
+  color: #f57f17;
+  border: 2px solid #ffcc80;
+  font-weight: 600;
+}
+
+.btn-clear-photo:hover {
+  background: #ffecb3;
+  border-color: #ffb74d;
+}
+
+.guardian-fields {
+  margin-bottom: 0;
+}
+
+.add-guardian-btn {
+  margin-top: 8px;
+}
+
+.save-progress-panel {
+  margin: 16px 0;
+  padding: 14px 16px;
+  background: #e8eaf6;
+  border-radius: 10px;
+  border: 1px solid #c5cae9;
+}
+
+.save-progress-panel p {
+  margin: 0 0 10px 0;
+  font-weight: 600;
+  color: #3949ab;
+  font-size: 0.95rem;
+}
+
+.file-load-progress {
+  background: #fff8e1;
+  border-color: #ffcc80;
+}
+
+.file-load-progress p {
+  color: #e65100;
+}
+
+.progress-bar {
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.progress-bar.determinate {
+  background: rgba(57, 73, 171, 0.2);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #5c6bc0, #3949ab);
+  transition: width 0.15s ease-out;
+}
+
+.progress-bar.indeterminate {
+  position: relative;
+  background: rgba(57, 73, 171, 0.15);
+}
+
+.progress-bar.indeterminate::after {
+  content: '';
+  position: absolute;
+  left: -40%;
+  top: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, transparent, #5c6bc0, transparent);
+  animation: progress-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
