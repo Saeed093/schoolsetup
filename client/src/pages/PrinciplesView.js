@@ -51,10 +51,22 @@ function DashboardClock() {
   );
 }
 
+const today = () => new Date().toISOString().slice(0, 10);
+
 function PrinciplesView() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [faceNoMatchAlert, setFaceNoMatchAlert] = useState(null);
+  const [attendanceSummary, setAttendanceSummary] = useState({ total: 0, total_in: 0, total_out: 0 });
+
+  // Tab navigation
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Attendance History tab state
+  const [historyDate, setHistoryDate] = useState(today);
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchClasses = async () => {
     try {
@@ -67,6 +79,15 @@ function PrinciplesView() {
     } catch (err) {
       console.error('Failed to fetch classes:', err);
     }
+  };
+
+  const fetchAttendanceSummary = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/attendance/summary`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setAttendanceSummary(data);
+    } catch { /* ignore */ }
   };
 
   useEffect(() => {
@@ -92,10 +113,13 @@ function PrinciplesView() {
     };
     
     initialFetch();
+    fetchAttendanceSummary();
     const interval = setInterval(fetchClasses, 1500);
+    const attInterval = setInterval(fetchAttendanceSummary, 5000);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      clearInterval(attInterval);
     };
   }, []);
 
@@ -116,6 +140,13 @@ function PrinciplesView() {
             if (data.type === 'card_scan' || data.type === 'checkin_update' || data.type === 'pickup_image_update') {
               console.log('[PrinciplesView] Received scan event, refreshing data...');
               fetchClasses();
+            }
+            if (
+              data.type === 'attendance_change' ||
+              data.type === 'attendance_reset' ||
+              data.type === 'attendance_mass_update'
+            ) {
+              fetchAttendanceSummary();
             }
             if (data.type === 'face_no_match') {
               setFaceNoMatchAlert({
@@ -157,6 +188,29 @@ function PrinciplesView() {
     };
   }, []);
 
+  // Fetch attendance history when history tab is open or filters change
+  useEffect(() => {
+    if (activeTab !== 'history') return;
+    let cancelled = false;
+    const fetchHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/attendance/history?date=${historyDate}&q=${encodeURIComponent(historySearch)}`
+        );
+        if (!res.ok) throw new Error('Failed');
+        const data = await res.json();
+        if (!cancelled) setHistoryRecords(data.records || []);
+      } catch {
+        if (!cancelled) setHistoryRecords([]);
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    };
+    fetchHistory();
+    return () => { cancelled = true; };
+  }, [activeTab, historyDate, historySearch]);
+
   // Calculate totals for summary
   const totalStudents = classes.reduce((sum, cls) => sum + (cls.total || 0), 0);
   const totalRemaining = classes.reduce((sum, cls) => sum + (cls.remaining || 0), 0);
@@ -181,79 +235,191 @@ function PrinciplesView() {
         <DashboardClock />
       </header>
 
-      {/* Unified Summary Card */}
-      <div className="unified-summary-card">
-        <div className="summary-row">
-          <div className="summary-item total-item">
-            <div className="summary-icon-circle total-circle">
-              <span>👨‍👩‍👧‍👦</span>
-            </div>
-            <div className="summary-text">
-              <span className="summary-number">{totalStudents}</span>
-              <span className="summary-label">Total Students</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="summary-row two-col">
-          <div className="summary-item welcome-item">
-            <div className="summary-icon-circle welcome-circle">
-              <span>🌅</span>
-            </div>
-            <div className="summary-text">
-              <span className="summary-number">{totalRemaining}</span>
-              <span className="summary-label">Welcome</span>
-              <span className="summary-sublabel">In School</span>
-            </div>
-          </div>
-          
-          <div className="summary-item goodbye-item">
-            <div className="summary-icon-circle goodbye-circle">
-              <span>👋</span>
-            </div>
-            <div className="summary-text">
-              <span className="summary-number">{totalPickedUp}</span>
-              <span className="summary-label">Goodbye</span>
-              <span className="summary-sublabel">Picked Up</span>
-            </div>
-          </div>
-        </div>
+      {/* Tab navigation */}
+      <div className="principles-tab-bar">
+        <button
+          className={`principles-tab ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          📊 Overview
+        </button>
+        <button
+          className={`principles-tab ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          📋 Attendance History
+        </button>
       </div>
 
-      {loading && <div className="principles-loading">Loading…</div>}
+      {/* ── OVERVIEW TAB ─────────────────────────────────────────── */}
+      {activeTab === 'overview' && (
+        <>
+          {/* Unified Summary Card */}
+          <div className="unified-summary-card">
+            <div className="summary-row">
+              <div className="summary-item total-item">
+                <div className="summary-icon-circle total-circle">
+                  <span>👨‍👩‍👧‍👦</span>
+                </div>
+                <div className="summary-text">
+                  <span className="summary-number">{totalStudents}</span>
+                  <span className="summary-label">Total Students</span>
+                </div>
+              </div>
+            </div>
 
-      <h2 className="section-title">Select Class for Details</h2>
-      
-      <div className="principles-scroll-area">
-      <div className="principles-class-grid">
-        {classes.map((cls) => {
-          const isActive = cls.id === '1' || cls.id === '2';
-          const allGone = cls.total > 0 && cls.remaining === 0;
-          const content = (
-            <>
-              <span className="principles-class-label">{cls.label}</span>
-              <span className="principles-class-students">
-                Students : {cls.remaining}/{cls.total}
-              </span>
-            </>
-          );
-          const cardClass = `principles-class-card${allGone ? ' principles-class-card-all-gone' : ''}`;
-          return isActive ? (
-            <Link
-              key={cls.id}
-              to={`/principal/class/${encodeURIComponent(cls.id)}`}
-              className={cardClass}
-            >
-              {content}
-            </Link>
-          ) : (
-            <span key={cls.id} className={`principles-class-card principles-class-card-disabled${allGone ? ' principles-class-card-all-gone' : ''}`}>
-              {content}
-            </span>
-          );
-        })}
-      </div>
-      </div>
+            <div className="summary-row two-col">
+              <div className="summary-item welcome-item">
+                <div className="summary-icon-circle welcome-circle">
+                  <span>🌅</span>
+                </div>
+                <div className="summary-text">
+                  <span className="summary-number">{totalRemaining}</span>
+                  <span className="summary-label">Welcome</span>
+                  <span className="summary-sublabel">In School</span>
+                </div>
+              </div>
+
+              <div className="summary-item goodbye-item">
+                <div className="summary-icon-circle goodbye-circle">
+                  <span>👋</span>
+                </div>
+                <div className="summary-text">
+                  <span className="summary-number">{totalPickedUp}</span>
+                  <span className="summary-label">Goodbye</span>
+                  <span className="summary-sublabel">Picked Up</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {attendanceSummary.total > 0 && (
+            <div className="attendance-summary-strip">
+              <div className="att-strip-title">UHF Attendance</div>
+              <div className="att-strip-badges">
+                <span className="att-strip-badge att-strip-in">{attendanceSummary.total_in} IN</span>
+                <span className="att-strip-badge att-strip-out">{attendanceSummary.total_out} OUT</span>
+                <span className="att-strip-badge att-strip-total">{attendanceSummary.total} Tagged</span>
+                <Link to="/attendance" className="att-strip-link">View Dashboard →</Link>
+              </div>
+            </div>
+          )}
+
+          {loading && <div className="principles-loading">Loading…</div>}
+
+          <h2 className="section-title">Select Class for Details</h2>
+
+          <div className="principles-scroll-area">
+            <div className="principles-class-grid">
+              {classes.map((cls) => {
+                const isActive = cls.id === '1' || cls.id === '2';
+                const allGone = cls.total > 0 && cls.remaining === 0;
+                const content = (
+                  <>
+                    <span className="principles-class-label">{cls.label}</span>
+                    <span className="principles-class-students">
+                      Students : {cls.remaining}/{cls.total}
+                    </span>
+                  </>
+                );
+                const cardClass = `principles-class-card${allGone ? ' principles-class-card-all-gone' : ''}`;
+                return isActive ? (
+                  <Link
+                    key={cls.id}
+                    to={`/principal/class/${encodeURIComponent(cls.id)}`}
+                    className={cardClass}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <span
+                    key={cls.id}
+                    className={`principles-class-card principles-class-card-disabled${allGone ? ' principles-class-card-all-gone' : ''}`}
+                  >
+                    {content}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── ATTENDANCE HISTORY TAB ───────────────────────────────── */}
+      {activeTab === 'history' && (
+        <div className="history-tab">
+          <div className="history-filters">
+            <div className="history-filter-group">
+              <label className="history-filter-label" htmlFor="history-date">Date</label>
+              <input
+                id="history-date"
+                type="date"
+                className="history-date-input"
+                value={historyDate}
+                onChange={(e) => setHistoryDate(e.target.value)}
+              />
+            </div>
+            <div className="history-filter-group">
+              <label className="history-filter-label" htmlFor="history-search">Search</label>
+              <input
+                id="history-search"
+                type="text"
+                className="history-search-input"
+                placeholder="Student name..."
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {historyLoading && <div className="history-loading">Loading history…</div>}
+
+          {!historyLoading && historyRecords.length === 0 && (
+            <div className="history-empty">No records found for this date.</div>
+          )}
+
+          {!historyLoading && historyRecords.length > 0 && (
+            <div className="history-table-wrapper">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Class</th>
+                    <th>Arrival</th>
+                    <th>Departure</th>
+                    <th>Scans</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyRecords.map((r, i) => (
+                    <tr key={r.uhf_tag_id || i}>
+                      <td className="history-name">{r.student_name}</td>
+                      <td className="history-class">{r.student_class || '—'}</td>
+                      <td className="history-time">
+                        {r.arrival_time
+                          ? new Date(r.arrival_time).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : '—'}
+                      </td>
+                      <td className="history-time">
+                        {r.departure_time
+                          ? new Date(r.departure_time).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : '—'}
+                      </td>
+                      <td className="history-scans">{r.total_scans || 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="principles-actions">
         <Link to="/" className="principles-back-link">← Back to Home</Link>

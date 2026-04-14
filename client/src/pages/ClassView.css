@@ -594,3 +594,51 @@
     display: none; /* Hide on very small screens */
   }
 }
+
+/* Attendance status bar in ClassView */
+.class-attendance-bar {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+.att-badge {
+  padding: 4px 14px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.att-badge.att-in {
+  background: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+}
+
+.att-badge.att-out {
+  background: rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.att-badge.att-total {
+  background: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+/* Gate out (UHF) — reuses .class-view-time pill; only tight spacing under card scan time */
+.class-view-scan-box .class-view-center .class-view-gate-out-time {
+  margin-top: clamp(2px, 0.8vw, 6px);
+}
+
+.class-view-auto-clear-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 6px;
+  font-weight: 400;
+}

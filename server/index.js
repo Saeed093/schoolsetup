@@ -18,8 +18,11 @@ const rfidRoutes = require('./routes/rfid');
 const adminRoutes = require('./routes/admin');
 const principalRoutes = require('./routes/principal');
 const captureRoutes = require('./routes/capture');
+const uhfRoutes = require('./routes/uhf');
+const attendanceRoutes = require('./routes/attendance');
 const { initializeDatabase } = require('./database/db');
 const { initializeRFIDReader } = require('./services/rfidService');
+const { initializeUHFReader } = require('./services/uhfService');
 
 // Middleware
 app.use(cors());
@@ -36,6 +39,8 @@ app.use('/api/rfid', rfidRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/principal', principalRoutes);
 app.use('/api/capture', captureRoutes);
+app.use('/api/uhf', uhfRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // API endpoint to get WebSocket connection info
 app.get('/api/websocket-info', (req, res) => {
@@ -431,6 +436,7 @@ async function startServer() {
   try {
     await initializeDatabase();
     await initializeRFIDReader();
+    await initializeUHFReader();
     
     const localIP = getLocalIPAddress();
     

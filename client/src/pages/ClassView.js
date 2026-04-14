@@ -26,8 +26,11 @@ function ClassView() {
   const [adultImgOk, setAdultImgOk] = useState(true);
   const [childImgOk, setChildImgOk] = useState(true);
   const [scanDraft, setScanDraft] = useState('');
+  const [attendanceSummary, setAttendanceSummary] = useState({ total: 0, in: 0, out: 0 });
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const lastPickupIdRef = useRef(null);
   const clearedAtRef = useRef(null); // Track when display was cleared
+  const autoClearDisplayRef = useRef(null);
 
   // Keyboard-wedge (HID) scanners type into the focused element.
   // Keep a hidden input focused so the Class View is always ready.
@@ -36,6 +39,48 @@ function ClassView() {
   const lastKeyAtRef = useRef(0);
 
   const classLabel = classId === '1' ? 'Class 1' : classId === '2' ? 'Class 2' : classId === '3' ? 'Class 3' : classId === '4' ? 'Class 4' : classId === '5' ? 'Class 5' : classId === 'prenursery' ? 'Prenursery' : classId === 'nursery' ? 'Nursery' : classId;
+
+  // Fetch attendance summary (and raw records) for this class
+  const fetchClassAttendance = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/attendance/class/${encodeURIComponent(classId)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = data.attendance || [];
+      setAttendanceRecords(list);
+      setAttendanceSummary({
+        total: list.length,
+        in: list.filter((a) => a.status === 'in').length,
+        out: list.filter((a) => a.status === 'out').length
+      });
+    } catch { /* ignore */ }
+  }, [classId]);
+
+  useEffect(() => {
+    fetchClassAttendance();
+    const interval = setInterval(fetchClassAttendance, 5000);
+    return () => clearInterval(interval);
+  }, [fetchClassAttendance]);
+
+  // After 5 minutes showing a pickup, hide the child/guardian display (same as idle screen)
+  useEffect(() => {
+    if (autoClearDisplayRef.current) {
+      clearTimeout(autoClearDisplayRef.current);
+      autoClearDisplayRef.current = null;
+    }
+    if (!currentScan) return undefined;
+    autoClearDisplayRef.current = setTimeout(() => {
+      autoClearDisplayRef.current = null;
+      setCurrentScan(null);
+      // Keep lastPickupIdRef so polling does not immediately re-show the same pickup row
+    }, 5 * 60 * 1000);
+    return () => {
+      if (autoClearDisplayRef.current) {
+        clearTimeout(autoClearDisplayRef.current);
+        autoClearDisplayRef.current = null;
+      }
+    };
+  }, [currentScan]);
 
   // Submit a keyboard-wedge scan to the server
   const submitScan = useCallback(async (cardId) => {
@@ -105,6 +150,15 @@ function ClassView() {
                 setChildImgOk(true);
                 clearedAtRef.current = null; // Reset clear since we have a new scan
               }
+            }
+
+            // Handle attendance changes from UHF reader or admin bulk set
+            if (
+              data.type === 'attendance_change' ||
+              data.type === 'attendance_reset' ||
+              data.type === 'attendance_mass_update'
+            ) {
+              fetchClassAttendance();
             }
 
             // Handle checkin_update - ignore (arrivals don't display on ClassView)
@@ -370,6 +424,13 @@ function ClassView() {
           {connected ? '✅ System Ready' : '⏳ Connecting...'}
           {scanDraft && <span style={{ marginLeft: '10px', opacity: 0.8 }}>(Scanning: {scanDraft})</span>}
         </div>
+        {attendanceSummary.total > 0 && (
+          <div className="class-attendance-bar">
+            <span className="att-badge att-in">{attendanceSummary.in} IN</span>
+            <span className="att-badge att-out">{attendanceSummary.out} OUT</span>
+            <span className="att-badge att-total">{attendanceSummary.total} Tagged</span>
+          </div>
+        )}
       </header>
 
       <main className="class-view-main">
@@ -390,6 +451,17 @@ function ClassView() {
               <div className="class-view-center">
                 <div className="class-view-name">{currentScan.student_name}</div>
                 <div className="class-view-time">🕐 {formatTime(currentScan.timestamp)}</div>
+                {(() => {
+                  const rec = attendanceRecords.find(
+                    (a) => a.card_id === currentScan.card_id && a.status === 'out' && a.last_changed_at
+                  );
+                  return rec ? (
+                    <div className="class-view-time class-view-gate-out-time">
+                      🚪 Gate out time · {formatTime(rec.last_changed_at)}
+                    </div>
+                  ) : null;
+                })()}
+                <div className="class-view-auto-clear-hint">Display clears automatically after 5 minutes</div>
               </div>
               <div className="class-view-side class-view-child-side">
                 <div className="class-view-role-label">Student</div>

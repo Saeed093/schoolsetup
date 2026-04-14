@@ -207,7 +207,7 @@ router.get('/class/:classId/latest', (req, res) => {
 });
 
 // GET /api/principal/class/:classId/pickups - list pickups for a class (for Principal class detail page)
-// Now includes direction field for check-in/check-out
+// Includes direction field and uhf_out_time (last UHF departure for that student today).
 router.get('/class/:classId/pickups', (req, res) => {
   const { classId } = req.params;
   const db = getDatabase();
@@ -215,37 +215,47 @@ router.get('/class/:classId/pickups', (req, res) => {
     return res.status(500).json({ error: 'Database not available' });
   }
 
-  db.all('SELECT id, card_id, student_name, student_class, adult_name, adult_image, child_image, pickup_image, direction, picked_at FROM pickups ORDER BY picked_at DESC', [], (err, rows) => {
-    if (err) {
-      console.error('Principal pickups error:', err);
-      return res.status(500).json({ error: 'Failed to fetch pickups' });
+  db.all(
+    `SELECT p.id, p.card_id, p.student_name, p.student_class,
+            p.adult_name, p.adult_image, p.child_image, p.pickup_image,
+            p.direction, p.picked_at,
+            a.last_changed_at AS uhf_out_time
+     FROM pickups p
+     LEFT JOIN attendance a ON a.card_id = p.card_id AND a.status = 'out'
+     ORDER BY p.picked_at DESC`,
+    [],
+    (err, rows) => {
+      if (err) {
+        console.error('Principal pickups error:', err);
+        return res.status(500).json({ error: 'Failed to fetch pickups' });
+      }
+
+      const matchId = (classId || '').toString().trim();
+      const byClass = rows.filter((r) => classMatches(r.student_class, matchId));
+      const seenCards = new Set();
+      const filtered = byClass.filter((r) => {
+        if (seenCards.has(r.card_id)) return false;
+        seenCards.add(r.card_id);
+        return true;
+      });
+
+      const pickups = filtered.map((r) => ({
+        id: r.id,
+        card_id: r.card_id,
+        student_name: r.student_name,
+        student_class: r.student_class,
+        adult_name: r.adult_name,
+        adult_image: r.adult_image || '',
+        child_image: r.child_image || '',
+        pickup_image: r.pickup_image || '',
+        direction: r.direction || 'out',
+        timestamp: r.picked_at,
+        uhf_out_time: r.uhf_out_time || null
+      }));
+
+      res.json({ classId: matchId, pickups });
     }
-
-    const matchId = (classId || '').toString().trim();
-    const byClass = rows.filter((r) => classMatches(r.student_class, matchId));
-    // One row per card_id (most recent activity) – remove duplicates
-    const seenCards = new Set();
-    const filtered = byClass.filter((r) => {
-      if (seenCards.has(r.card_id)) return false;
-      seenCards.add(r.card_id);
-      return true;
-    });
-
-    const pickups = filtered.map((r) => ({
-      id: r.id,
-      card_id: r.card_id,
-      student_name: r.student_name,
-      student_class: r.student_class,
-      adult_name: r.adult_name,
-      adult_image: r.adult_image || '',
-      child_image: r.child_image || '',
-      pickup_image: r.pickup_image || '',  // The captured image at scan time
-      direction: r.direction || 'out',     // 'in' for check-in, 'out' for check-out
-      timestamp: r.picked_at
-    }));
-
-    res.json({ classId: matchId, pickups });
-  });
+  );
 });
 
 module.exports = router;

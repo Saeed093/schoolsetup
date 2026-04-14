@@ -161,7 +161,8 @@ router.post('/', (req, res) => {
     student_name,
     student_class,
     child_image,
-    alarm_enabled
+    alarm_enabled,
+    uhf_tag_id
   } = req.body;
 
   if (!card_id || !student_name) {
@@ -172,7 +173,7 @@ router.post('/', (req, res) => {
   const childIsDataUrl = !!parseDataUrlImage(incomingChildImage);
 
   db.run(
-    `INSERT INTO cards (card_id, checkin_card_id, student_name, student_class, adult_name, adult_image, child_image, alarm_enabled, guardians_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO cards (card_id, checkin_card_id, student_name, student_class, adult_name, adult_image, child_image, alarm_enabled, guardians_json, uhf_tag_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       card_id,
       checkin_card_id || '',
@@ -182,7 +183,8 @@ router.post('/', (req, res) => {
       '',
       childIsDataUrl ? '' : (incomingChildImage || ''),
       alarm_enabled ? 1 : 0,
-      '[]'
+      '[]',
+      (uhf_tag_id || '').toString().trim().toUpperCase()
     ],
     function (err) {
       if (err) {
@@ -214,7 +216,8 @@ router.post('/', (req, res) => {
             adult_image: proc.adult_image,
             child_image: savedChild || '',
             guardians_json: proc.guardians_json,
-            alarm_enabled: alarm_enabled ? 1 : 0
+            alarm_enabled: alarm_enabled ? 1 : 0,
+            uhf_tag_id: (uhf_tag_id || '').toString().trim().toUpperCase()
           });
         }
       );
@@ -232,7 +235,8 @@ router.put('/:id', (req, res) => {
     child_image,
     card_id,
     checkin_card_id,
-    alarm_enabled
+    alarm_enabled,
+    uhf_tag_id
   } = req.body;
 
   if (!student_name) {
@@ -302,6 +306,11 @@ router.put('/:id', (req, res) => {
     if (typeof alarm_enabled === 'boolean') {
       updateFields.push('alarm_enabled = ?');
       values.push(alarm_enabled ? 1 : 0);
+    }
+
+    if (typeof uhf_tag_id === 'string') {
+      updateFields.push('uhf_tag_id = ?');
+      values.push(uhf_tag_id.trim().toUpperCase());
     }
 
     updateFields.push('updated_at = CURRENT_TIMESTAMP');

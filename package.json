@@ -11,21 +11,29 @@
     "client:https": "cd client && npm run start:https",
     "build": "cd client && npm run build",
     "install-all": "npm install && cd client && npm install",
-    "install-all:ps": "npm install; if ($?) { cd client; npm install }"
+    "install-all:ps": "npm install; if ($?) { cd client; npm install }",
+    "uhf-bridge": "cd server/uhf-bridge && python app.py",
+    "uhf-bridge:py": "cd server/uhf-bridge && py -3 app.py",
+    "dev:with-uhf": "concurrently -n server,client,uhf \"npm run server\" \"npm run client\" \"npm run uhf-bridge\""
   },
-  "keywords": ["rfid", "school", "pickup"],
+  "keywords": [
+    "rfid",
+    "school",
+    "pickup"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
+    "axios": "^1.15.0",
     "cors": "^2.8.5",
-    "sqlite3": "^5.1.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "serialport": "^12.0.0",
-    "ws": "^8.14.2",
-    "dotenv": "^16.3.1"
+    "sqlite3": "^5.1.6",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.1"
   }
 }

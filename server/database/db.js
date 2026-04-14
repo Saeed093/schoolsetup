@@ -172,6 +172,103 @@ function initializeDatabase() {
             console.log('Migration complete.');
           }
 
+          // Add uhf_tag_id column to cards for UHF child attendance tracking
+          const colsForUhf = await all(db, `PRAGMA table_info(cards)`);
+          const colNamesUhf = new Set(colsForUhf.map((c) => c.name));
+          if (!colNamesUhf.has('uhf_tag_id')) {
+            console.log('Migrating cards schema: adding uhf_tag_id...');
+            await run(db, `ALTER TABLE cards ADD COLUMN uhf_tag_id TEXT DEFAULT ''`);
+            console.log('Migration complete.');
+          }
+
+          // Attendance table: current in/out status per child
+          await run(
+            db,
+            `
+            CREATE TABLE IF NOT EXISTS attendance (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              uhf_tag_id TEXT NOT NULL,
+              card_id TEXT NOT NULL,
+              student_name TEXT NOT NULL,
+              student_class TEXT DEFAULT '',
+              status TEXT DEFAULT 'out',
+              last_changed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+          `
+          );
+
+          // Migrate attendance table: add missing columns if the table pre-dates them
+          const attCols = await all(db, `PRAGMA table_info(attendance)`);
+          const attColNames = new Set(attCols.map((c) => c.name));
+          if (!attColNames.has('uhf_tag_id')) {
+            console.log('Migrating attendance schema: adding uhf_tag_id...');
+            await run(db, `ALTER TABLE attendance ADD COLUMN uhf_tag_id TEXT NOT NULL DEFAULT ''`);
+            console.log('Migration complete.');
+          }
+          if (!attColNames.has('card_id')) {
+            console.log('Migrating attendance schema: adding card_id...');
+            await run(db, `ALTER TABLE attendance ADD COLUMN card_id TEXT NOT NULL DEFAULT ''`);
+            console.log('Migration complete.');
+          }
+          if (!attColNames.has('student_name')) {
+            console.log('Migrating attendance schema: adding student_name...');
+            await run(db, `ALTER TABLE attendance ADD COLUMN student_name TEXT NOT NULL DEFAULT ''`);
+            console.log('Migration complete.');
+          }
+          if (!attColNames.has('student_class')) {
+            console.log('Migrating attendance schema: adding student_class...');
+            await run(db, `ALTER TABLE attendance ADD COLUMN student_class TEXT DEFAULT ''`);
+            console.log('Migration complete.');
+          }
+          if (!attColNames.has('last_changed_at')) {
+            console.log('Migrating attendance schema: adding last_changed_at...');
+            await run(db, `ALTER TABLE attendance ADD COLUMN last_changed_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+            console.log('Migration complete.');
+          }
+
+          // Attendance log: historical record of all in/out transitions
+          await run(
+            db,
+            `
+            CREATE TABLE IF NOT EXISTS attendance_log (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              uhf_tag_id TEXT NOT NULL,
+              card_id TEXT NOT NULL,
+              student_name TEXT NOT NULL,
+              student_class TEXT DEFAULT '',
+              direction TEXT NOT NULL,
+              timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+          `
+          );
+
+          // UHF settings: key/value store for configurable settings
+          await run(
+            db,
+            `
+            CREATE TABLE IF NOT EXISTS uhf_settings (
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL
+            )
+          `
+          );
+
+          // Seed default UHF settings if they don't exist
+          const existingSettings = await all(db, `SELECT key FROM uhf_settings`);
+          const settingKeys = new Set(existingSettings.map((s) => s.key));
+          const defaults = {
+            debounce_seconds: '5',
+            sdk_url: 'http://localhost:8888',
+            com_port: '',
+            baud_rate: '115200',
+            auto_connect: 'false'
+          };
+          for (const [key, value] of Object.entries(defaults)) {
+            if (!settingKeys.has(key)) {
+              await run(db, `INSERT INTO uhf_settings (key, value) VALUES (?, ?)`, [key, value]);
+            }
+          }
+
           console.log('Database tables initialized');
           resolve();
         } catch (e) {

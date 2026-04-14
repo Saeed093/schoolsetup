@@ -533,6 +533,75 @@ function Admin() {
         </section>
 
         <section className="admin-section">
+          <h2>Bulk UHF times (all students)</h2>
+          <p className="admin-desc">
+            For every student who has a <strong>UHF tag</strong> on file, record one shared timestamp in the
+            attendance log as either everyone arrived (IN) or everyone left (OUT). Dashboards and history update
+            immediately. Does not change RFID pickup rows — use &quot;Reset pickups&quot; for that.
+          </p>
+          <div className="admin-bulk-attendance-row">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!window.confirm('Record arrival (IN) for all students with UHF tags, at the current time?')) return;
+                setLoading(true);
+                setMessage(null);
+                try {
+                  const res = await fetch(`${API_BASE}/api/admin/set-all-attendance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: ADMIN_PASSWORD, status: 'in' })
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    showMessage(data.error || 'Request failed', true);
+                  } else {
+                    showMessage(data.message || `Set ${data.updated ?? 0} to IN.`);
+                  }
+                } catch {
+                  showMessage('Network error.', true);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="admin-btn admin-btn-success admin-btn-compact"
+            >
+              {loading ? 'Working…' : 'Set arrival time (all IN)'}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!window.confirm('Record departure (OUT) for all students with UHF tags, at the current time?')) return;
+                setLoading(true);
+                setMessage(null);
+                try {
+                  const res = await fetch(`${API_BASE}/api/admin/set-all-attendance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: ADMIN_PASSWORD, status: 'out' })
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    showMessage(data.error || 'Request failed', true);
+                  } else {
+                    showMessage(data.message || `Set ${data.updated ?? 0} to OUT.`);
+                  }
+                } catch {
+                  showMessage('Network error.', true);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="admin-btn admin-btn-secondary admin-btn-compact"
+            >
+              {loading ? 'Working…' : 'Set departure time (all OUT)'}
+            </button>
+          </div>
+        </section>
+
+        <section className="admin-section">
           <h2>Simulate morning (reset pickups)</h2>
           <p className="admin-desc">Clear all pickup records so every student is counted as &quot;in&quot; again. Use at start of day.</p>
           <button

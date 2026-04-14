@@ -20,6 +20,15 @@ import FaceNoMatchBanner from '../components/FaceNoMatchBanner';
  * - Check-Out (default): Records student leaving school (pickup)
  * - Check-In: Records student arriving at school
  */
+const formatTime = (ts) => {
+  if (!ts) return '';
+  try {
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  } catch {
+    return ts;
+  }
+};
+
 function CaptureStation() {
   // Camera state
   const [cameras, setCameras] = useState([]);
@@ -52,6 +61,14 @@ function CaptureStation() {
       getFaceRecognitionEnabled() && !areFaceModelsReady()
     );
   });
+
+  // Reader status badges
+  const [readerStatus, setReaderStatus] = useState({ connected: false });
+  const [uhfStatus, setUhfStatus] = useState({ connected: false, scanning: false });
+
+  // UHF alerts and departure info
+  const [uhfAlert, setUhfAlert] = useState(null);       // { student, direction, mode }
+  const [uhfLastOut, setUhfLastOut] = useState(null);   // { student, time }
 
   // Refs
   const videoRef = useRef(null);
@@ -202,6 +219,45 @@ function CaptureStation() {
       setFaceNoMatchAlert(null);
     }
   }, [stationMode, frsEnabled]);
+
+  // Auto-connect UHF reader on mount, stop scanning on unmount
+  useEffect(() => {
+    const initUHF = async () => {
+      try {
+        await fetch(`${API_BASE}/api/uhf/connect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}'
+        });
+        await fetch(`${API_BASE}/api/uhf/start`, { method: 'POST' });
+        const s = await fetch(`${API_BASE}/api/uhf/status`).then((r) => r.json());
+        setUhfStatus({ connected: !!s.connected, scanning: !!s.scanning });
+      } catch (e) {
+        console.warn('[CaptureStation] UHF init error:', e.message);
+      }
+    };
+    initUHF();
+    return () => {
+      fetch(`${API_BASE}/api/uhf/stop`, { method: 'POST' }).catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Poll RFID reader status on mount
+  useEffect(() => {
+    const fetchRfid = async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/rfid/status`).then((res) => res.json());
+        setReaderStatus({ connected: !!(r.connected || r.reader_connected) });
+      } catch {
+        // ignore
+      }
+    };
+    fetchRfid();
+    const id = setInterval(fetchRfid, 5000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Stop camera (used when switching to check-in mode)
   const stopCamera = () => {
@@ -585,6 +641,57 @@ function CaptureStation() {
                   });
                 }
               }
+            } else if (data.type === 'attendance_change') {
+              const mode = stationModeRef.current;
+              const wrongDir =
+                (mode === 'in' && data.new_status === 'out') ||
+                (mode === 'out' && data.new_status === 'in');
+
+              // Always show who just scanned — alert fires on top for wrong direction
+              setLastCapture({
+                cardId: data.card_id || '',
+                studentName: data.student_name || 'Unknown',
+                childImage: data.child_image || '',
+                timestamp: data.timestamp || new Date().toISOString(),
+                hasImage: false,
+                direction: data.new_status,
+                faceCheckSkipped: false,
+                fromUhf: true,
+                wrongDir
+              });
+
+              if (data.new_status === 'in') {
+                setCaptureStatus(
+                  wrongDir
+                    ? `⚠️ UHF: ${data.student_name} marked IN (station is in LEAVING mode)`
+                    : `✅ UHF Arrived: ${data.student_name}`
+                );
+              } else {
+                setCaptureStatus(
+                  wrongDir
+                    ? `⚠️ UHF: ${data.student_name} marked OUT (station is in ARRIVING mode)`
+                    : `✅ UHF Left: ${data.student_name}`
+                );
+              }
+
+              // Show direction-mismatch banner as well
+              if (wrongDir) {
+                setUhfAlert({ student: data.student_name, direction: data.new_status, mode });
+                setTimeout(() => setUhfAlert(null), 10000);
+              } else {
+                setUhfAlert(null); // clear any previous alert when correct scan comes in
+              }
+
+              // Track UHF departure for the departure-time widget (check-out mode)
+              if (data.new_status === 'out') {
+                setUhfLastOut({ student: data.student_name, time: data.timestamp });
+              }
+
+              // Keep UHF badge status fresh
+              try {
+                const s = await fetch(`${API_BASE}/api/uhf/status`).then((r) => r.json());
+                setUhfStatus({ connected: !!s.connected, scanning: !!s.scanning });
+              } catch { /* ignore */ }
             }
           } catch (err) {
             console.error('[CaptureStation] WebSocket parse error:', err);
@@ -794,6 +901,17 @@ function CaptureStation() {
         />
       )}
 
+      {uhfAlert && (
+        <div className="uhf-direction-alert">
+          <span>
+            ⚠️ <strong>{uhfAlert.student}</strong> was marked{' '}
+            <strong>{uhfAlert.direction.toUpperCase()}</strong> during{' '}
+            {uhfAlert.mode === 'in' ? 'ARRIVING' : 'LEAVING'} time
+          </span>
+          <button className="uhf-alert-dismiss" onClick={() => setUhfAlert(null)}>✕</button>
+        </div>
+      )}
+
       {/* Hidden input for keyboard-wedge scanner */}
       <input
         ref={scanInputRef}
@@ -836,6 +954,12 @@ function CaptureStation() {
               {cameraActive ? '📹 Camera Active' : '📷 Camera Starting...'}
             </span>
           )}
+          <span className={`status-badge ${readerStatus.connected ? 'rfid-on' : 'rfid-off'}`}>
+            {readerStatus.connected ? '📡 RFID Connected' : '📡 RFID Offline'}
+          </span>
+          <span className={`status-badge ${uhfStatus.connected ? (uhfStatus.scanning ? 'uhf-scanning' : 'uhf-on') : 'uhf-off'}`}>
+            {uhfStatus.scanning ? '🔖 UHF Scanning' : uhfStatus.connected ? '🔖 UHF Connected' : '🔖 UHF Offline'}
+          </span>
           <span className={`status-badge mode-indicator ${stationMode === 'in' ? 'mode-in' : 'mode-out'}`}>
             {stationMode === 'in' ? '📥 ARRIVING' : '📤 LEAVING'}
           </span>
@@ -852,7 +976,7 @@ function CaptureStation() {
             <div className="checkin-waiting-box">
               <div className="checkin-icon">🏫</div>
               <h2>Waiting for Student Scan</h2>
-              <p className="checkin-subtitle">Scan RFID card to mark student as arrived</p>
+              <p className="checkin-subtitle">Scan RFID card or walk past UHF reader to mark student as arrived</p>
               
               <div className="checkin-status">
                 {/* Only show scan-related status, not camera status */}
@@ -861,13 +985,28 @@ function CaptureStation() {
                   : captureStatus}
               </div>
 
-              {lastCapture && lastCapture.direction === 'in' && (
-                <div className="checkin-last-scan">
-                  <h3>Last Arrival</h3>
+              {lastCapture && (
+                <div className={`checkin-last-scan${lastCapture.wrongDir ? ' checkin-last-scan-wrong' : ''}`}>
+                  <h3>{lastCapture.wrongDir ? '⚠️ Wrong Direction' : lastCapture.direction === 'in' ? 'Last Arrival' : 'Last Departure'}</h3>
                   <div className="checkin-student-info">
+                    {lastCapture.childImage && (
+                      <div className="checkin-child-photo-wrap">
+                        <img
+                          src={lastCapture.childImage}
+                          alt={lastCapture.studentName}
+                          className="checkin-child-photo"
+                        />
+                      </div>
+                    )}
                     <p className="student-name">{lastCapture.studentName || 'Unknown'}</p>
                     <p className="scan-time">{new Date(lastCapture.timestamp).toLocaleTimeString()}</p>
-                    <p className="scan-status">✅ Arrived Successfully</p>
+                    <p className={`scan-status${lastCapture.wrongDir ? ' scan-status-wrong' : ''}`}>
+                      {lastCapture.wrongDir
+                        ? `🔖 UHF marked ${lastCapture.direction === 'in' ? 'IN' : 'OUT'} — check mode`
+                        : lastCapture.fromUhf
+                          ? `🔖 UHF — ${lastCapture.direction === 'in' ? 'Arrived' : 'Left'} Successfully`
+                          : `✅ ${lastCapture.direction === 'in' ? 'Arrived' : 'Left'} Successfully`}
+                    </p>
                   </div>
                 </div>
               )}
@@ -877,7 +1016,7 @@ function CaptureStation() {
               <h3>Arrival Mode</h3>
               <ul>
                 <li>Camera is off in this mode</li>
-                <li>Simply scan the student's RFID card</li>
+                <li>Scan RFID card <strong>or</strong> walk past UHF reader</li>
                 <li>Student will be marked as arrived at school</li>
               </ul>
             </div>
@@ -1073,6 +1212,13 @@ function CaptureStation() {
                         faceMatchResult.status !== 'disabled' && (
                           <div className="face-match-detail">{faceMatchResult.message}</div>
                         )}
+                    </div>
+                  )}
+
+                  {uhfLastOut && (
+                    <div className="uhf-departure-time">
+                      🔖 UHF departure: <strong>{uhfLastOut.student}</strong> at{' '}
+                      <strong>{formatTime(uhfLastOut.time)}</strong>
                     </div>
                   )}
                 </>

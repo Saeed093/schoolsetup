@@ -104,6 +104,10 @@
   border: 3px solid #e91e63;
 }
 
+.attendance-card-home:hover {
+  border: 3px solid #7c3aed;
+}
+
 .admin-card-home:hover {
   border: 3px solid #2e7d32;
 }

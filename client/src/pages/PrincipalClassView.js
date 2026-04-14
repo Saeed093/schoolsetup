@@ -23,6 +23,7 @@ function PrincipalClassView() {
   const [error, setError] = useState(null);
   const [detailPopup, setDetailPopup] = useState(null);
   const [faceNoMatchAlert, setFaceNoMatchAlert] = useState(null);
+  const [classAttendance, setClassAttendance] = useState([]);
 
   const labelMap = {
     '1': 'Class 1',
@@ -42,6 +43,14 @@ function PrincipalClassView() {
       .catch((err) => setError(err.message || 'Failed to load pickups'));
   }, []);
 
+  const fetchClassAttendance = useCallback((cid) => {
+    if (!cid) return;
+    fetch(`${API_BASE}/api/attendance/class/${encodeURIComponent(cid)}`)
+      .then((res) => res.json())
+      .then((data) => setClassAttendance(data.attendance || []))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const cid = (classId || '').trim();
     setClassLabel(labelMap[cid] || cid);
@@ -58,12 +67,15 @@ function PrincipalClassView() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    fetchClassAttendance(cid);
     const interval = setInterval(() => fetchPickups(cid), 1500);
+    const attInterval = setInterval(() => fetchClassAttendance(cid), 5000);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      clearInterval(attInterval);
     };
-  }, [classId, fetchPickups]);
+  }, [classId, fetchPickups, fetchClassAttendance]);
 
   // WebSocket for real-time updates across the network
   useEffect(() => {
@@ -83,6 +95,13 @@ function PrincipalClassView() {
             if (data.type === 'card_scan' || data.type === 'checkin_update' || data.type === 'pickup_image_update') {
               console.log('[PrincipalClassView] Received event, refreshing pickups:', data.type);
               fetchPickups(cid);
+            }
+            if (
+              data.type === 'attendance_change' ||
+              data.type === 'attendance_reset' ||
+              data.type === 'attendance_mass_update'
+            ) {
+              fetchClassAttendance(cid);
             }
             if (data.type === 'face_no_match') {
               setFaceNoMatchAlert({
@@ -151,6 +170,13 @@ function PrincipalClassView() {
       <header className="class-view-header">
         <h1>{classLabel} — Pickups</h1>
         <p className="principal-subtitle">Guardian and time for each student who went out</p>
+        {classAttendance.length > 0 && (
+          <div className="class-attendance-bar">
+            <span className="att-badge att-in">{classAttendance.filter((a) => a.status === 'in').length} IN</span>
+            <span className="att-badge att-out">{classAttendance.filter((a) => a.status === 'out').length} OUT</span>
+            <span className="att-badge att-total">{classAttendance.length} Tagged</span>
+          </div>
+        )}
       </header>
 
       <main className="principal-class-main">
@@ -243,6 +269,12 @@ function PickupDetailModal({ pickup, formatTime, imageSrc, onClose }) {
             <span className="principal-detail-label">Pickup Time:</span>
             <span className="principal-detail-value">{formatTime(pickup.timestamp)}</span>
           </div>
+          {pickup.uhf_out_time && (
+            <div className="principal-detail-row">
+              <span className="principal-detail-label">🔖 UHF Out:</span>
+              <span className="principal-detail-value">{formatTime(pickup.uhf_out_time)}</span>
+            </div>
+          )}
           <div className="principal-detail-row">
             <span className="principal-detail-label">Card ID:</span>
             <span className="principal-detail-value">{pickup.card_id}</span>
@@ -348,6 +380,9 @@ function PickupBox({ pickup, formatTime, imageSrc, onDetailClick }) {
       <div className="class-view-center">
         <div className="class-view-name">{pickup.student_name}</div>
         <div className="class-view-time">🕐 {formatTime(pickup.timestamp)}</div>
+        {pickup.uhf_out_time && (
+          <div className="class-view-uhf-time">🔖 UHF: {formatTime(pickup.uhf_out_time)}</div>
+        )}
         <div className="class-view-tap-hint">Tap for details</div>
       </div>
       <div className="class-view-side class-view-child-side">

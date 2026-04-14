@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './CardManager.css';
 import {
@@ -7,6 +7,12 @@ import {
 } from '../utils/faceVerification';
 
 const getApiUrl = () => `/api/cards`;
+
+const getWsUrl = () => {
+  const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'localhost' : window.location.hostname;
+  return `ws://${host}:5000/`;
+};
 
 const MAX_GUARDIANS = 5;
 /** Per-image cap (bytes). PNGs can be large; server JSON limit is 70mb total. */
@@ -68,6 +74,7 @@ function CardManager() {
   const [formData, setFormData] = useState({
     card_id: '',
     checkin_card_id: '',
+    uhf_tag_id: '',
     student_name: '',
     student_class: '',
     child_image: '',
@@ -81,10 +88,37 @@ function CardManager() {
   const [uploadPercent, setUploadPercent] = useState(null);
   /** Loading large file into memory before it appears in the form (0–100 or null) */
   const [fileLoadPercent, setFileLoadPercent] = useState(null);
+  const [uhfScanning, setUhfScanning] = useState(false);
+  const [uhfListening, setUhfListening] = useState(false);
 
   useEffect(() => {
     fetchCards();
   }, []);
+
+  // WebSocket: listen for uhf_unknown_tag events while "listening" mode is on
+  // so tapping a new tag near the reader auto-fills the UHF field
+  const handleUhfTagDetected = useCallback((epc) => {
+    setFormData((prev) => ({ ...prev, uhf_tag_id: epc }));
+    setUhfListening(false);
+  }, []);
+
+  useEffect(() => {
+    if (!uhfListening) return;
+    let ws = null;
+    try {
+      ws = new WebSocket(getWsUrl());
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'uhf_unknown_tag' && data.epc) {
+            handleUhfTagDetected(data.epc);
+          }
+        } catch { /* ignore */ }
+      };
+      ws.onerror = () => { ws?.close(); };
+    } catch { /* ignore */ }
+    return () => { ws?.close(); };
+  }, [uhfListening, handleUhfTagDetected]);
 
   const fetchCards = async () => {
     try {
@@ -284,6 +318,7 @@ function CardManager() {
       setFormData({
         card_id: '',
         checkin_card_id: '',
+        uhf_tag_id: '',
         student_name: '',
         student_class: '',
         child_image: '',
@@ -357,6 +392,7 @@ function CardManager() {
     setFormData({
       card_id: card.card_id,
       checkin_card_id: card.checkin_card_id ?? '',
+      uhf_tag_id: card.uhf_tag_id ?? '',
       student_name: card.student_name ?? card.name ?? '',
       student_class: card.student_class ?? '',
       child_image: card.child_image ?? '',
@@ -371,6 +407,7 @@ function CardManager() {
     setFormData({
       card_id: '',
       checkin_card_id: '',
+      uhf_tag_id: '',
       student_name: '',
       student_class: '',
       child_image: '',
@@ -464,6 +501,62 @@ function CardManager() {
               />
               <small className="form-hint">Used when student arrives at school</small>
             </div>
+          </div>
+
+          <div className="form-group uhf-tag-group">
+            <label htmlFor="uhf_tag_id">📶 Child UHF Tag ID</label>
+            <div className="uhf-input-row">
+              <input
+                type="text"
+                id="uhf_tag_id"
+                value={formData.uhf_tag_id}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    uhf_tag_id: e.target.value.toUpperCase()
+                  })
+                }
+                placeholder={uhfListening ? 'Hold tag near reader...' : uhfScanning ? 'Scanning...' : 'Scan or type tag EPC'}
+                className={uhfListening ? 'uhf-listening' : ''}
+              />
+              <button
+                type="button"
+                className={`btn btn-small btn-uhf-scan ${uhfScanning ? 'scanning' : ''}`}
+                disabled={uhfScanning}
+                onClick={async () => {
+                  setUhfScanning(true);
+                  setError('');
+                  try {
+                    const res = await axios.post('/api/uhf/scan-single', { timeout: 4000 });
+                    if (res.data.success && res.data.epc) {
+                      setFormData((prev) => ({ ...prev, uhf_tag_id: res.data.epc }));
+                    } else {
+                      setError(res.data.message || 'No tag detected. Hold the tag near the reader and try again.');
+                    }
+                  } catch (err) {
+                    setError(err.response?.data?.error || 'Could not scan. Is the UHF reader connected? Connect it from the Attendance Dashboard.');
+                  } finally {
+                    setUhfScanning(false);
+                  }
+                }}
+                title="Quick scan: reads one tag from the UHF reader"
+              >
+                {uhfScanning ? '⏳ Scanning...' : '📶 Scan Tag'}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-small ${uhfListening ? 'btn-uhf-listening' : 'btn-uhf-listen'}`}
+                onClick={() => setUhfListening((prev) => !prev)}
+                title={uhfListening ? 'Stop listening for tags' : 'Listen: auto-fill when any new tag is scanned while attendance scanning is running'}
+              >
+                {uhfListening ? '🔴 Stop' : '👂 Listen'}
+              </button>
+            </div>
+            <small className="form-hint">
+              <strong>Scan Tag</strong>: quick one-shot read from the UHF reader.
+              <strong> Listen</strong>: auto-fills when an unregistered tag is detected by the running scanner.
+              Or type the tag EPC manually.
+            </small>
           </div>
         </div>
 
@@ -754,6 +847,11 @@ function CardManager() {
                     {!!(card.checkin_card_id ?? '') && (
                       <div className="card-id card-id-checkin">
                         <span className="card-id-label">🏫 IN:</span> {card.checkin_card_id}
+                      </div>
+                    )}
+                    {!!(card.uhf_tag_id ?? '') && (
+                      <div className="card-id card-id-uhf">
+                        <span className="card-id-label">📶 UHF:</span> {card.uhf_tag_id}
                       </div>
                     )}
                   </div>

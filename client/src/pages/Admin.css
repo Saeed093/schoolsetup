@@ -538,3 +538,10 @@
   min-width: 3.5rem;
   text-align: right;
 }
+
+.admin-bulk-attendance-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}

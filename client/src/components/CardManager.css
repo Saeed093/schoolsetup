@@ -503,3 +503,88 @@
     left: 100%;
   }
 }
+
+/* UHF Tag scan button and input */
+.uhf-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.uhf-input-row input {
+  flex: 1;
+}
+
+.uhf-input-row input.uhf-listening {
+  border-color: #ef4444;
+  animation: uhf-pulse-border 1.5s ease-in-out infinite;
+}
+
+@keyframes uhf-pulse-border {
+  0%, 100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  50% { border-color: #f87171; box-shadow: 0 0 8px 2px rgba(239, 68, 68, 0.15); }
+}
+
+.btn-uhf-scan {
+  white-space: nowrap;
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.btn-uhf-scan:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.btn-uhf-scan:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.btn-uhf-scan.scanning {
+  background: #a78bfa;
+}
+
+.btn-uhf-listen {
+  white-space: nowrap;
+  background: #0ea5e9;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.btn-uhf-listen:hover {
+  background: #0284c7;
+}
+
+.btn-uhf-listening {
+  white-space: nowrap;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  animation: uhf-pulse-bg 1.5s ease-in-out infinite;
+}
+
+@keyframes uhf-pulse-bg {
+  0%, 100% { background: #ef4444; }
+  50% { background: #dc2626; }
+}
+
+.uhf-tag-group .form-hint strong {
+  font-weight: 600;
+}

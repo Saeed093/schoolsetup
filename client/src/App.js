@@ -11,6 +11,7 @@ import PrinciplesView from './pages/PrinciplesView';
 import PrincipalClassView from './pages/PrincipalClassView';
 import Admin from './pages/Admin';
 import CaptureStation from './pages/CaptureStation';
+import AttendanceDashboard from './pages/AttendanceDashboard';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/scan" element={<ScanView />} />
           <Route path="/manage" element={<ManagementView />} />
           <Route path="/time-to-go-home" element={<TimeToGoHome />} />
+          <Route path="/attendance" element={<AttendanceDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

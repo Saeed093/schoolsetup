@@ -390,3 +390,11 @@
     padding: 10px 12px !important;
   }
 }
+
+/* UHF time only inside principal pickup cards (avoid overriding ClassView /class/:id) */
+.principal-pickup-box .class-view-uhf-time {
+  font-size: 0.78rem;
+  color: #1a237e;
+  margin-top: 2px;
+  font-weight: 500;
+}

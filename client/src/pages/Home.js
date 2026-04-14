@@ -63,6 +63,13 @@ function Home() {
           <p className="card-hint">Run on server machine</p>
         </Link>
 
+        <Link to="/attendance" className="option-card attendance-card-home">
+          <div className="card-icon">📶</div>
+          <h2>Child Attendance</h2>
+          <p>UHF tag-based in/out tracking</p>
+          <p className="card-hint">Real-time attendance dashboard</p>
+        </Link>
+
         <Link to="/admin" className="option-card admin-card-home">
           <div className="card-icon">🔐</div>
           <h2>Admin</h2>

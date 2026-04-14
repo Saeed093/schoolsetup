@@ -148,6 +148,117 @@ router.post('/clear-display', checkPassword, (req, res) => {
   res.json({ success: true, message: 'Display clear sent' });
 });
 
+// Set UHF attendance for every student who has a UHF tag (arrival = in, departure = out).
+// Writes attendance rows + attendance_log entries with the current timestamp.
+router.post('/set-all-attendance', checkPassword, (req, res) => {
+  const raw = req.body?.status;
+  const status = raw === 'in' ? 'in' : raw === 'out' ? 'out' : null;
+  if (!status) {
+    return res.status(400).json({ error: 'status must be "in" or "out"' });
+  }
+
+  const db = getDatabase();
+  if (!db) {
+    return res.status(500).json({ error: 'Database not available' });
+  }
+
+  const now = new Date().toISOString();
+
+  db.all(
+    `SELECT card_id, student_name, student_class, uhf_tag_id
+     FROM cards
+     WHERE uhf_tag_id IS NOT NULL AND TRIM(uhf_tag_id) != ''`,
+    [],
+    (err, rows) => {
+      if (err) {
+        console.error('Admin set-all-attendance list error:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      const list = rows || [];
+      if (list.length === 0) {
+        return res.json({
+          success: true,
+          updated: 0,
+          status,
+          message: 'No students have a UHF tag assigned. Nothing to update.'
+        });
+      }
+
+      let index = 0;
+
+      const next = () => {
+        if (index >= list.length) {
+          if (global.broadcastToClients) {
+            global.broadcastToClients({
+              type: 'attendance_mass_update',
+              status,
+              timestamp: now,
+              count: list.length
+            });
+            console.log(`Admin: set-all-attendance ${status.toUpperCase()} for ${list.length} students`);
+          }
+          return res.json({
+            success: true,
+            updated: list.length,
+            status,
+            message:
+              status === 'in'
+                ? `Recorded arrival (IN) for ${list.length} student(s) with UHF tags.`
+                : `Recorded departure (OUT) for ${list.length} student(s) with UHF tags.`
+          });
+        }
+
+        const card = list[index];
+        index += 1;
+        const epc = String(card.uhf_tag_id).trim();
+
+        db.get('SELECT id FROM attendance WHERE uhf_tag_id = ?', [epc], (e2, att) => {
+          if (e2) {
+            console.error('Admin set-all-attendance get error:', e2);
+            return next();
+          }
+
+          const logRow = () => {
+            db.run(
+              `INSERT INTO attendance_log (uhf_tag_id, card_id, student_name, student_class, direction, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [epc, card.card_id, card.student_name, card.student_class || '', status, now],
+              (e4) => {
+                if (e4) console.error('Admin set-all-attendance log error:', e4);
+                next();
+              }
+            );
+          };
+
+          if (att) {
+            db.run(
+              'UPDATE attendance SET status = ?, last_changed_at = ? WHERE id = ?',
+              [status, now, att.id],
+              (e3) => {
+                if (e3) console.error('Admin set-all-attendance update error:', e3);
+                logRow();
+              }
+            );
+          } else {
+            db.run(
+              `INSERT INTO attendance (uhf_tag_id, card_id, student_name, student_class, status, last_changed_at)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [epc, card.card_id, card.student_name, card.student_class || '', status, now],
+              (e3) => {
+                if (e3) console.error('Admin set-all-attendance insert error:', e3);
+                logRow();
+              }
+            );
+          }
+        });
+      };
+
+      next();
+    }
+  );
+});
+
 // Reset pickups (simulate students coming in in the morning – all students "in" again)
 router.post('/reset-pickups', checkPassword, (req, res) => {
   const db = getDatabase();

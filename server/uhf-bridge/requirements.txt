@@ -1,0 +1,6 @@
+flask>=2.0
+flask-cors>=3.0
+pyserial>=3.4
+# uhfReaderApi requires pyserial==3.4; install separately if needed:
+#   pip install uhfReaderApi
+# The bridge runs in DEMO mode without it.
