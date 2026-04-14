@@ -1,0 +1,72 @@
+================================================================================
+  School Pickup System — how to start the Python UHF bridge and Node server
+================================================================================
+
+Use a separate terminal for each block below. Paths use the project folder;
+change the drive/path if your clone lives elsewhere.
+
+Project root (always start here for Node / npm):
+
+  cd "E:\102 psc AI\School pickup sys"
+
+
+--------------------------------------------------------------------------------
+  1) Python UHF bridge (Flask + serial reader — port 8888 by default)
+--------------------------------------------------------------------------------
+
+  cd "E:\102 psc AI\School pickup sys\server\uhf-bridge"
+  python app.py
+
+  If `python` is not on PATH, try:
+
+  py -3 app.py
+
+  Optional: from project root you can use npm instead:
+
+  cd "E:\102 psc AI\School pickup sys"
+  npm run uhf-bridge
+
+  (Equivalent: npm run uhf-bridge:py  uses `py -3 app.py`)
+
+
+--------------------------------------------------------------------------------
+  2) Node.js API server (Express — typically port 5000)
+--------------------------------------------------------------------------------
+
+  cd "E:\102 psc AI\School pickup sys"
+  npm run server
+
+  Uses nodemon and restarts when server files change.
+
+
+--------------------------------------------------------------------------------
+  3) React client + API together (two processes via concurrently)
+--------------------------------------------------------------------------------
+
+  cd "E:\102 psc AI\School pickup sys"
+  npm run dev
+
+  Starts the Node server and the React dev server (client).
+
+
+--------------------------------------------------------------------------------
+  4) Optional: API + client + UHF bridge in one command (three terminals in one)
+--------------------------------------------------------------------------------
+
+  cd "E:\102 psc AI\School pickup sys"
+  npm run dev:with-uhf
+
+
+--------------------------------------------------------------------------------
+  First-time / dependencies
+--------------------------------------------------------------------------------
+
+  From project root:
+
+  npm install
+  cd client
+  npm install
+  cd ..\server\uhf-bridge
+  pip install -r requirements.txt
+
+================================================================================
