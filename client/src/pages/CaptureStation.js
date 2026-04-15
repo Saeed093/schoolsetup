@@ -220,24 +220,43 @@ function CaptureStation() {
     }
   }, [stationMode, frsEnabled]);
 
-  // Auto-connect UHF reader on mount, stop scanning on unmount
+  // Auto-connect UHF reader on mount; periodically check and reconnect if lost
   useEffect(() => {
-    const initUHF = async () => {
+    const connectUHF = async () => {
       try {
         await fetch(`${API_BASE}/api/uhf/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: '{}'
         });
-        await fetch(`${API_BASE}/api/uhf/start`, { method: 'POST' });
+        await fetch(`${API_BASE}/api/uhf/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}'
+        });
         const s = await fetch(`${API_BASE}/api/uhf/status`).then((r) => r.json());
         setUhfStatus({ connected: !!s.connected, scanning: !!s.scanning });
       } catch (e) {
-        console.warn('[CaptureStation] UHF init error:', e.message);
+        console.warn('[CaptureStation] UHF connect error:', e.message);
       }
     };
-    initUHF();
+
+    connectUHF();
+
+    // Poll UHF status every 10 s and reconnect if scanning has stopped
+    const uhfPollId = setInterval(async () => {
+      try {
+        const s = await fetch(`${API_BASE}/api/uhf/status`).then((r) => r.json());
+        setUhfStatus({ connected: !!s.connected, scanning: !!s.scanning });
+        if (!s.connected || !s.scanning) {
+          console.log('[CaptureStation] UHF not scanning — reconnecting...');
+          await connectUHF();
+        }
+      } catch { /* ignore */ }
+    }, 10000);
+
     return () => {
+      clearInterval(uhfPollId);
       fetch(`${API_BASE}/api/uhf/stop`, { method: 'POST' }).catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -692,6 +711,24 @@ function CaptureStation() {
                 const s = await fetch(`${API_BASE}/api/uhf/status`).then((r) => r.json());
                 setUhfStatus({ connected: !!s.connected, scanning: !!s.scanning });
               } catch { /* ignore */ }
+            } else if (data.type === 'uhf_unknown_tag' && data.epc) {
+              // Tag scanned but not registered to any child — show a notice
+              // so staff know something was read (prompts them to register it)
+              setCaptureStatus(`🔖 Unknown tag scanned: ${data.epc} — not registered to any child`);
+              setLastCapture((prev) => ({
+                ...(prev || {}),
+                cardId: '',
+                studentName: 'Unregistered Tag',
+                childImage: '',
+                timestamp: data.timestamp || new Date().toISOString(),
+                hasImage: false,
+                direction: stationModeRef.current,
+                faceCheckSkipped: false,
+                fromUhf: true,
+                wrongDir: false,
+                unknownTag: true,
+                epc: data.epc
+              }));
             }
           } catch (err) {
             console.error('[CaptureStation] WebSocket parse error:', err);
@@ -1001,11 +1038,13 @@ function CaptureStation() {
                     <p className="student-name">{lastCapture.studentName || 'Unknown'}</p>
                     <p className="scan-time">{new Date(lastCapture.timestamp).toLocaleTimeString()}</p>
                     <p className={`scan-status${lastCapture.wrongDir ? ' scan-status-wrong' : ''}`}>
-                      {lastCapture.wrongDir
-                        ? `🔖 UHF marked ${lastCapture.direction === 'in' ? 'IN' : 'OUT'} — check mode`
-                        : lastCapture.fromUhf
-                          ? `🔖 UHF — ${lastCapture.direction === 'in' ? 'Arrived' : 'Left'} Successfully`
-                          : `✅ ${lastCapture.direction === 'in' ? 'Arrived' : 'Left'} Successfully`}
+                      {lastCapture.unknownTag
+                        ? `⚠️ Tag ${lastCapture.epc} not registered — go to Management to register it`
+                        : lastCapture.wrongDir
+                          ? `🔖 UHF marked ${lastCapture.direction === 'in' ? 'IN' : 'OUT'} — check mode`
+                          : lastCapture.fromUhf
+                            ? `🔖 UHF — ${lastCapture.direction === 'in' ? 'Arrived' : 'Left'} Successfully`
+                            : `✅ ${lastCapture.direction === 'in' ? 'Arrived' : 'Left'} Successfully`}
                     </p>
                   </div>
                 </div>
@@ -1075,13 +1114,23 @@ function CaptureStation() {
             <div className="capture-info-section">
               {lastCapture && lastCapture.direction === 'out' && (
                 <>
-                  <div className="last-capture-box capture-out">
-                    <h3>Last Departure</h3>
+                  <div className={`last-capture-box capture-out${lastCapture.unknownTag ? ' capture-unknown-tag' : ''}`}>
+                    <h3>{lastCapture.unknownTag ? '⚠️ Unknown Tag' : 'Last Departure'}</h3>
                     <div className="last-capture-info">
-                      <p><strong>Card:</strong> {lastCapture.cardId}</p>
-                      <p><strong>Student:</strong> {lastCapture.studentName || 'Unknown'}</p>
-                      <p><strong>Time:</strong> {new Date(lastCapture.timestamp).toLocaleTimeString()}</p>
-                      <p><strong>Image:</strong> {lastCapture.hasImage ? '✅ Captured' : '❌ No image'}</p>
+                      {lastCapture.unknownTag ? (
+                        <>
+                          <p><strong>EPC:</strong> {lastCapture.epc}</p>
+                          <p style={{ color: '#e67e22' }}>This tag is not registered to any child.</p>
+                          <p>Go to <strong>Management → Register Card</strong> to assign it.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p><strong>Card:</strong> {lastCapture.cardId}</p>
+                          <p><strong>Student:</strong> {lastCapture.studentName || 'Unknown'}</p>
+                          <p><strong>Time:</strong> {new Date(lastCapture.timestamp).toLocaleTimeString()}</p>
+                          <p><strong>Image:</strong> {lastCapture.hasImage ? '✅ Captured' : '❌ No image'}</p>
+                        </>
+                      )}
                     </div>
                     {lastCapture.faceCheckSkipped && (
                       <p className="last-capture-face-hint">

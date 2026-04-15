@@ -103,15 +103,28 @@ async function connectToReader(options = {}) {
     throw new Error(readerStatus.lastError);
   }
 
+  const openPort = async (port) => {
+    // Retry up to 3 times — the bridge may need a moment after startup
+    for (let i = 0; i < 3; i++) {
+      try {
+        await sdkPost('/OpenDevice', { port, baud: parseInt(baudRate, 10) || 115200 });
+        return;
+      } catch (err) {
+        if (i === 2) throw err;
+        await new Promise((r) => setTimeout(r, 600));
+      }
+    }
+  };
+
   try {
     if (comPort) {
-      await sdkPost('/OpenDevice', { port: comPort, baud: parseInt(baudRate, 10) || 115200 });
+      await openPort(comPort);
     } else {
       const ports = await sdkPost('/getPorts');
       if (ports && ports.ports && ports.ports.length > 0) {
         comPort = ports.ports[0];
         readerStatus.comPort = comPort;
-        await sdkPost('/OpenDevice', { port: comPort, baud: parseInt(baudRate, 10) || 115200 });
+        await openPort(comPort);
       } else {
         throw new Error('No serial ports available');
       }
@@ -355,12 +368,26 @@ async function initializeUHFReader() {
   await loadSettings();
   // Write corrected debounce back to DB so old installs with 300s are fixed
   saveSetting('debounce_seconds', String(debounceSeconds));
-  console.log(`UHF Reader service initialized (SDK URL: ${sdkUrl}, debounce: ${debounceSeconds}s)`);
+  // Seed COM8 as default if no port has ever been saved, so scan-single works
+  // even before the user opens the Attendance Dashboard or Capture Station.
+  if (!comPort) {
+    comPort = 'COM8';
+    readerStatus.comPort = comPort;
+    saveSetting('com_port', comPort);
+  }
+  console.log(`UHF Reader service initialized (SDK URL: ${sdkUrl}, COM: ${comPort}, debounce: ${debounceSeconds}s)`);
   pruneAttendanceLog();
   if (axios) {
-    checkSdkReachable().then((reachable) => {
+    checkSdkReachable().then(async (reachable) => {
       if (reachable) {
-        console.log('UHF SDK server is reachable');
+        console.log('UHF SDK server is reachable — auto-connecting...');
+        try {
+          await connectToReader();
+          await startScanning();
+          console.log('UHF auto-connect + scan started successfully');
+        } catch (e) {
+          console.warn('UHF auto-connect failed:', e.message);
+        }
       } else {
         console.log('UHF SDK server not reachable — start the Python bridge and connect manually');
       }
@@ -382,38 +409,49 @@ async function getAvailablePorts() {
 }
 
 function updateDebounce(seconds) {
-  debounceSeconds = parseInt(seconds, 10) || 300;
+  const v = parseInt(seconds, 10);
+  debounceSeconds = (!v || v >= 300) ? 5 : v;
   saveSetting('debounce_seconds', String(debounceSeconds));
 }
 
 /**
- * Do a quick single-shot inventory: start scanning, poll a few times to
- * collect tags, stop scanning, and return the list of unique EPCs found.
- * Used for tag registration — hold a single tag near the reader and press
- * "Scan Tag" in the UI.
+ * Do a quick single-shot inventory: pause the regular poller, flush the
+ * bridge buffer, poll until a tag appears (or timeout), then restore the
+ * poller.  Never calls /InventoryStop — the bridge keeps running so the
+ * Capture Station continues to receive scans while/after registration.
  */
 async function scanSingleTag(timeoutMs = 3000) {
   if (!axios) throw new Error('axios not installed');
+
+  // Ensure connected — auto-connect if possible
   if (!isConnected) {
     await loadSettings();
     const reachable = await checkSdkReachable();
-    if (!reachable) throw new Error(`Cannot reach UHF SDK at ${sdkUrl}. Connect the reader first.`);
-    // Try auto-connect for convenience
-    try { await connectToReader(); } catch { /* ignore */ }
-    if (!isConnected) throw new Error('Reader not connected. Connect from the Attendance Dashboard first.');
+    if (!reachable) {
+      throw new Error(
+        `Cannot reach UHF bridge at ${sdkUrl}. Is the Python bridge running? (python app.py)`
+      );
+    }
+    await connectToReader();   // throws if it fails — no silent ignore
   }
 
-  const wasScanning = isScanning;
   const found = new Set();
 
+  // Temporarily pause the regular 500 ms poller so it doesn't consume tags
+  // from the bridge buffer before our dedicated poll below can see them.
+  const wasPolling = !!pollInterval;
+  if (wasPolling) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+
   try {
-    if (!wasScanning) {
-      await sdkPost('/StartCounting');
-    }
+    // Flush any stale buffered tags and re-arm the bridge inventory.
+    // Do NOT call InventoryStop at the end — the bridge must keep scanning
+    // so the Capture Station keeps working.
+    await sdkPost('/StartCounting');
 
     const deadline = Date.now() + timeoutMs;
-    const pollMs = 200;
-
     while (Date.now() < deadline) {
       try {
         const data = await sdkPost('/GetTagInfo');
@@ -425,19 +463,19 @@ async function scanSingleTag(timeoutMs = 3000) {
           else if (data.result && Array.isArray(data.result)) tags = data.result;
 
           for (const tag of tags) {
-            const epc = (tag.epc || tag.EPC || tag.tagId || tag.tag_id || tag.id || '').toString().trim().toUpperCase();
+            const epc = (tag.epc || tag.EPC || tag.tagId || tag.tag_id || tag.id || '')
+              .toString().trim().toUpperCase();
             if (epc) found.add(epc);
           }
         }
-      } catch { /* ignore individual poll errors */ }
+      } catch { /* ignore transient poll errors */ }
 
       if (found.size > 0) break;
-      await new Promise((r) => setTimeout(r, pollMs));
+      await new Promise((r) => setTimeout(r, 200));
     }
   } finally {
-    if (!wasScanning) {
-      try { await sdkPost('/InventoryStop'); } catch { /* ignore */ }
-    }
+    // Always restore the regular poller so ongoing scanning isn't disrupted
+    if (wasPolling) startPolling();
   }
 
   return [...found];

@@ -93,10 +93,19 @@ function CardManager() {
 
   useEffect(() => {
     fetchCards();
+    // Silently ensure the UHF reader is connected so "Scan Tag" works
+    // without needing to open the Capture Station or Attendance Dashboard first.
+    fetch('/api/uhf/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }).catch(() => {/* bridge may not be running — will fail gracefully on scan */});
   }, []);
 
-  // WebSocket: listen for uhf_unknown_tag events while "listening" mode is on
-  // so tapping a new tag near the reader auto-fills the UHF field
+  // WebSocket: listen for any UHF tag event while "listening" mode is on
+  // so tapping any tag near the reader auto-fills the UHF field.
+  // Handles both unregistered tags (uhf_unknown_tag) and already-registered
+  // tags (attendance_change.uhf_tag_id) so the field fills in either case.
   const handleUhfTagDetected = useCallback((epc) => {
     setFormData((prev) => ({ ...prev, uhf_tag_id: epc }));
     setUhfListening(false);
@@ -104,6 +113,22 @@ function CardManager() {
 
   useEffect(() => {
     if (!uhfListening) return;
+
+    // Ensure the reader is connected AND scanning before opening the WebSocket.
+    // Without this, isScanning=false in the Node service means pollForTags never
+    // runs, so no events are ever broadcast and the WebSocket receives nothing.
+    const ensureScanning = async () => {
+      try {
+        await fetch('/api/uhf/connect', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+        await fetch('/api/uhf/start', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+      } catch { /* ignore — ws will just receive nothing if bridge is down */ }
+    };
+    ensureScanning();
+
     let ws = null;
     try {
       ws = new WebSocket(getWsUrl());
@@ -112,6 +137,10 @@ function CardManager() {
           const data = JSON.parse(event.data);
           if (data.type === 'uhf_unknown_tag' && data.epc) {
             handleUhfTagDetected(data.epc);
+          } else if (data.type === 'attendance_change' && data.uhf_tag_id) {
+            // Tag already assigned to a student — still capture the EPC
+            // so the user can re-assign or confirm it in this form.
+            handleUhfTagDetected(data.uhf_tag_id);
           }
         } catch { /* ignore */ }
       };
